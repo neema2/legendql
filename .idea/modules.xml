@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/legend-dataframe.iml" filepath="$PROJECT_DIR$/.idea/legend-dataframe.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/legendql.iml" filepath="$PROJECT_DIR$/.idea/legendql.iml" />
     </modules>
   </component>
 </project>

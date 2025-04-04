@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
+from dataclasses import dataclass
 
 class Query(ABC):
     pass
@@ -9,8 +10,9 @@ class Literal(ABC):
     def value(self):
         pass
 
+@dataclass
 class IntegerLiteral(Literal):
-    val = 0
+    val: int
     def __init__(self, val):
         self.val = val
 
@@ -32,89 +34,68 @@ class UnaryOperator(Operator):
 class BinaryOperator(Operator):
     pass
 
+@dataclass
 class OperandExpression(Expression):
     expression: Expression
-    def __init__(self, expression: Expression):
-        self.expression = expression
 
+@dataclass
 class UnaryExpression(Expression):
     operator: UnaryOperator
     expression: OperandExpression
-    def __init__(self, operator: UnaryOperator, expression: OperandExpression):
-        self.operator = operator
-        self.expression = expression
 
+@dataclass
 class BinaryExpression(Expression):
     left: OperandExpression
     right: OperandExpression
     operator: BinaryOperator
-    def __init__(self, left: OperandExpression, right: OperandExpression, operator: BinaryOperator):
-        self.left = left
-        self.right = right
-        self.operator = operator
 
+@dataclass
 class LiteralExpression(Expression):
     literal: Literal
-    def __init__(self, literal: Literal):
-        self.literal = literal
 
+@dataclass
 class ReferenceExpression(Expression):
     name: str
     alias: str
-    def __init__(self, name: str, alias: str):
-        self.name = name
-        self.alias = alias
 
+@dataclass
 class FunctionExpression(Expression):
     function: Function
     parameters: List[Expression]
-    def __init__(self, function: Function, parameters: List[Expression]):
-        self.function = function
-        self.parameters = parameters
 
 class Clause(ABC):
     pass
 
+@dataclass
 class FilterClause(Clause):
     expression: Expression
-    def __init__(self, expression: Expression):
-        self.expression = expression
 
+@dataclass
 class SelectionClause(Clause):
     expressions: List[Expression]
-    def __init__(self, expressions: List[Expression]):
-        self.expressions = expressions
 
+@dataclass
 class ExtendClause(Clause):
     expressions: List[Expression]
-    def __init__(self, expressions: List[Expression]):
-        self.expressions = expressions
 
+@dataclass
 class GroupByClause(Clause):
     expressions: List[Expression]
     having: Expression
-    def __init__(self, expressions: List[Expression], having: Expression):
-        self.expressions = expressions
-        self.having = having
 
+@dataclass
 class DistinctClause(Clause):
     expressions: List[Expression]
-    def __init__(self, expressions: List[Expression]):
-        self.expressions = expressions
 
+@dataclass
 class LimitClause(Clause):
     value: IntegerLiteral
-    def __init__(self, value: IntegerLiteral):
-        self.value = value
 
 class JoinType:
     pass
 
+@dataclass
 class JoinClause(Clause):
     left: Query
     right: Query
     type: JoinType
-    def __init__(self, left: Query, right: Query, type: JoinType):
-        self.left = left
-        self.right = right
-        self.type = type
