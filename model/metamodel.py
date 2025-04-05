@@ -177,7 +177,7 @@ class ExtendClause(Clause):
 @dataclass
 class GroupByClause(Clause):
     expressions: List[Expression]
-    having: Expression
+    having: Expression = None
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_group_by_clause(self, parameter)
@@ -216,13 +216,23 @@ class Query(Executable):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_query(self, parameter)
 
-class JoinType:
-    pass
+class JoinType(ABC):
+    @abstractmethod
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        pass
+
+class InnerJoinType(JoinType):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_inner_join_type(self, parameter)
+
+class LeftJoinType(JoinType):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_left_join_type(self, parameter)
 
 @dataclass
 class JoinClause(Clause, Executable):
     left: Executable
-    right: Query
+    right: Executable
     join_type: JoinType
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
@@ -382,4 +392,12 @@ class ExecutionVisitor(ABC):
 
     @abstractmethod
     def visit_join_clause[P, T](self, val: JoinClause, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_inner_join_type[P, T](self, val: InnerJoinType, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_left_join_type[P, T](self, val: LeftJoinType, parameter: P) -> T:
         raise NotImplementedError()

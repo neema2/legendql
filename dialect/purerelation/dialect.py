@@ -6,7 +6,8 @@ from model.metamodel import ExecutionVisitor, JoinClause, LimitClause, DistinctC
     UnaryExpression, OperandExpression, BooleanLiteral, StringLiteral, IntegerLiteral, Query, Runtime, Executable, \
     Results, OrBinaryOperator, AndBinaryOperator, LessThanEqualsBinaryOperator, LessThanBinaryOperator, \
     GreaterThanEqualsBinaryOperator, GreaterThanBinaryOperator, NotEqualsBinaryOperator, EqualsBinaryOperator, \
-    NotUnaryOperator
+    NotUnaryOperator, InnerJoinType, LeftJoinType
+
 
 @dataclass
 class PureRuntime(Runtime, ABC):
@@ -28,8 +29,13 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return "#>{" + val.database + "." + parameter + "}#"
 
     def visit_query(self, val: Query, parameter: str) -> str:
-        #TODO: AJH: add in the rest
-        return self.runtime.visit(self, val.table) + "->" + self.visit_selection_clause(val.select, "")
+        select = self.runtime.visit(self, val.table) + "->" + self.visit_selection_clause(val.select, "") if val.select else ""
+        extend = "->".join(map(lambda expr: "->" + expr.visit(self, ""), val.extend)) if val.extend else ""
+        filter_expr = "->" + val.filter.visit(self, "") if val.filter else ""
+        group_by = "->" + val.groupBy.visit(self, "") if val.groupBy else ""
+        limit = "->" + val.limit.visit(self, "") if val.limit else ""
+        join = "->" + val.join.visit(self, "") if val.join else ""
+        return select + extend + filter_expr + group_by + limit + join
 
     def visit_integer_literal(self, val: IntegerLiteral, parameter: str) -> str:
         return str(val.value())
@@ -83,25 +89,34 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return val.alias
 
     def visit_function_expression(self, val: FunctionExpression, parameter: str) -> str:
-        raise NotImplementedError()
+        #TODO: AJH: need to actually model functions
+        return "TODO"
 
     def visit_filter_clause(self, val: FilterClause, parameter: str) -> str:
-        raise NotImplementedError()
+        #TODO: AJH: need to fix FilterClause to capture aliases
+        return "TODO"
 
     def visit_selection_clause(self, val: SelectionClause, parameter: str) -> str:
         return "select(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
 
     def visit_extend_clause(self, val: ExtendClause, parameter: str) -> str:
-        raise NotImplementedError()
+        return "extend(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
 
     def visit_group_by_clause(self, val: GroupByClause, parameter: str) -> str:
-        raise NotImplementedError()
+        having = ", " + val.having.visit(self, "") if val.having else ""
+        return "groupBy(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "]" + having + ")"
 
     def visit_distinct_clause(self, val: DistinctClause, parameter: str) -> str:
-        raise NotImplementedError()
+        return "distinct(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
 
     def visit_limit_clause(self, val: LimitClause, parameter: str) -> str:
-        raise NotImplementedError()
+        return "limit(" + val.value.visit(self, "") + ")"
 
     def visit_join_clause(self, val: JoinClause, parameter: str) -> str:
-        raise NotImplementedError()
+        return val.left.visit(self, "") + "->join(" + val.right.visit(self, "") + ", " + val.join_type.visit(self, "") + ")"
+
+    def visit_inner_join_type[P, T](self, val: InnerJoinType, parameter: P) -> T:
+        return "JoinKind.INNER"
+
+    def visit_left_join_type[P, T](self, val: LeftJoinType, parameter: P) -> T:
+        return "JoinKind.LEFT"
