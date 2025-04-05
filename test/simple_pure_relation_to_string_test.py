@@ -3,7 +3,8 @@ import unittest
 from dialect.purerelation.dialect import NonExecutablePureRuntime
 from model.metamodel import SelectionClause, SelectionExpression, FilterClause, ExtendClause, GroupByClause, \
     LimitClause, IntegerLiteral, JoinClause, InnerJoinType, BinaryExpression, ReferenceExpression, LiteralExpression, \
-    EqualsBinaryOperator, OperandExpression, AliasExpression, ExtendExpression
+    EqualsBinaryOperator, OperandExpression, AliasExpression, ExtendExpression, GroupByExpression, FunctionExpression, \
+    CountFunction
 from ql.legendql import LegendQL
 
 
@@ -42,10 +43,10 @@ class TestPureRelationDialect(unittest.TestCase):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
         data_frame = (LegendQL.create("local::DuckDuckDatabase", "table")
          .select(SelectionClause([SelectionExpression("col", "column")]))
-         .groupBy(GroupByClause([AliasExpression("column")]))
+         .groupBy(GroupByClause([SelectionExpression("col", "column")], [GroupByExpression("count", ReferenceExpression("a", "column"), FunctionExpression(CountFunction(), [AliasExpression("a")]))]))
          .bind(runtime))
         pure_relation = data_frame.executable_to_string()
-        self.assertEqual("#>{local::DuckDuckDatabase.table}#->from(local::DuckDuckRuntime)->select(~[column])->groupBy(~[column])", pure_relation)
+        self.assertEqual("#>{local::DuckDuckDatabase.table}#->from(local::DuckDuckRuntime)->select(~[column])->groupBy(~[column], ~[count: a | $a.column : a | $a->count()])", pure_relation)
 
     def test_simple_select_with_limit(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")

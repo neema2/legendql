@@ -7,7 +7,8 @@ from model.metamodel import ExecutionVisitor, JoinClause, LimitClause, DistinctC
     UnaryExpression, OperandExpression, BooleanLiteral, StringLiteral, IntegerLiteral, Query, Runtime, Executable, \
     Results, OrBinaryOperator, AndBinaryOperator, LessThanEqualsBinaryOperator, LessThanBinaryOperator, \
     GreaterThanEqualsBinaryOperator, GreaterThanBinaryOperator, NotEqualsBinaryOperator, EqualsBinaryOperator, \
-    NotUnaryOperator, InnerJoinType, LeftJoinType, RootQuery, ReferenceExpression, AliasExpression, ExtendExpression
+    NotUnaryOperator, InnerJoinType, LeftJoinType, RootQuery, ReferenceExpression, AliasExpression, ExtendExpression, \
+    GroupByExpression, CountFunction
 
 
 @dataclass
@@ -82,7 +83,7 @@ class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
         return parameter
 
     def visit_alias_expression[P, T](self, val: AliasExpression, parameter: Set[str]) -> Set[str]:
-        return parameter
+        return parameter | set(val.alias)
 
     def visit_selection_expression(self, val: SelectionExpression, parameter: Set[str]) -> Set[str]:
         return parameter
@@ -90,12 +91,15 @@ class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
     def visit_reference_expression(self, val: ReferenceExpression, parameter: Set[str]) -> Set[str]:
         return parameter | set(val.alias)
 
-    def visit_function_expression(self, val: FunctionExpression, parameter: set) -> set:
+    def visit_function_expression(self, val: FunctionExpression, parameter: Set[str]) -> Set[str]:
         result = parameter
         if val.parameters is not None:
             for param in val.parameters:
                 result = result | param.visit(self, set())
         return result
+
+    def visit_count_function(self, val: CountFunction, parameter: Set[str]) -> Set[str]:
+        return parameter
 
     def visit_filter_clause(self, val: FilterClause, parameter: Set[str]) -> Set[str]:
         return parameter |val.expression.visit(self, set())
@@ -125,6 +129,9 @@ class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
         if val.having is not None:
             result = result | val.having.visit(self, set())
         return result
+
+    def visit_group_by_expression(self, val: GroupByExpression, parameter: Set[str]) -> Set[str]:
+        return val.expression.visit(self, parameter)
 
     def visit_distinct_clause(self, val: DistinctClause, parameter: Set[str]) -> Set[str]:
         return parameter
@@ -215,7 +222,7 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return val.literal.visit(self, "")
 
     def visit_alias_expression(self, val: AliasExpression, parameter: str) -> str:
-        return val.alias
+        return "$" + val.alias
 
     def visit_selection_expression(self, val: SelectionExpression, parameter: str) -> str:
         #TODO: AJH: find right syntax for aliases
@@ -227,8 +234,13 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return "$" + val.alias + "." + val.ref
 
     def visit_function_expression(self, val: FunctionExpression, parameter: str) -> str:
-        #TODO: AJH: need to actually model functions
-        return "TODO"
+        #TODO: AJH: this probably isn't right
+        parameters = ", ".join(map(lambda expr: expr.visit(self, ""), val.parameters))
+        function_string = val.function.visit(self, "")
+        return parameters + function_string
+
+    def visit_count_function(self, val: CountFunction, parameter: str) -> str:
+        return "->count()"
 
     def visit_filter_clause(self, val: FilterClause, parameter: str) -> str:
         variables = val.expression.visit(self.var_extractor, set())
@@ -245,9 +257,17 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return "~" + val.alias + ":" + ", ".join(variables) + " | [" + val.expression.visit(self, "") + "]"
 
     def visit_group_by_clause(self, val: GroupByClause, parameter: str) -> str:
-        #TODO: AJH: this is also wrong... probably needs a metamodel change
+        #->groupBy(~[departmentId], ~[count: x | $x.departmentId : d | $d->count(), count2: x | $x.departmentId : d | $d->count()])
+
+        selections = "~[" + ", ".join(map(lambda selection: selection.visit(self, ""), val.selections)) + "]"
+        expressions = "~[" + ", ".join(map(lambda expression: expression.visit(self, ""), val.expressions)) + "]"
         having = ", " + val.having.visit(self, "") if val.having else ""
-        return "groupBy(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "]" + having + ")"
+        return "groupBy(" + selections + ", " + expressions + having + ")"
+
+    def visit_group_by_expression(self, val: GroupByExpression, parameter: str) -> str:
+        selection_vars = val.selection.visit(self.var_extractor, set())
+        reduction_vars = val.reduction.visit(self.var_extractor, set())
+        return val.alias + ": " + ", ".join(selection_vars) + " | " + val.selection.visit(self, "") + " : " + ", ".join(reduction_vars) + " | " + val.reduction.visit(self, "")
 
     def visit_distinct_clause(self, val: DistinctClause, parameter: str) -> str:
         return "distinct(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
