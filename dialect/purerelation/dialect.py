@@ -6,19 +6,19 @@ from model.metamodel import ExecutionVisitor, JoinClause, LimitClause, DistinctC
     UnaryExpression, OperandExpression, BooleanLiteral, StringLiteral, IntegerLiteral, Query, Runtime, Executable, \
     Results, OrBinaryOperator, AndBinaryOperator, LessThanEqualsBinaryOperator, LessThanBinaryOperator, \
     GreaterThanEqualsBinaryOperator, GreaterThanBinaryOperator, NotEqualsBinaryOperator, EqualsBinaryOperator, \
-    NotUnaryOperator, InnerJoinType, LeftJoinType
+    NotUnaryOperator, InnerJoinType, LeftJoinType, RootQuery
 
 
 @dataclass
 class PureRuntime(Runtime, ABC):
-    database: str
+    name: str
 
     def executable_to_string(self, executable: Executable) -> str:
         visitor = PureRelationExpressionVisitor(self)
         return executable.visit(visitor, "")
 
 class NonExecutablePureRuntime(PureRuntime):
-    def eval(self, executable: Executable) -> Results:
+    def eval(self, executable: Executable) -> str:
         raise NotImplementedError()
 
 @dataclass
@@ -26,10 +26,17 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
     runtime: PureRuntime
 
     def visit_runtime(self, val: PureRuntime, parameter: str) -> str:
-        return "#>{" + val.database + "." + parameter + "}#"
+        return val.name
+
+    def visit_root_query(self, val: RootQuery, parameter: str) -> str:
+        return self.visit_query_with_runtime(val.query, parameter, self.runtime)
 
     def visit_query(self, val: Query, parameter: str) -> str:
-        select = self.runtime.visit(self, val.table) + "->" + self.visit_selection_clause(val.select, "") if val.select else ""
+        return self.visit_query_with_runtime(val, parameter)
+
+    def visit_query_with_runtime(self, val: Query, parameter: str, runtime: PureRuntime = None) -> str:
+        from_clause = "->from(" + runtime.visit(self, "") + ")" if runtime else ""
+        select = "#>{" + val.database + "." + val.table + "}#" + from_clause + "->" + self.visit_selection_clause(val.select, "") if val.select else ""
         extend = "->".join(map(lambda expr: "->" + expr.visit(self, ""), val.extend)) if val.extend else ""
         filter_expr = "->" + val.filter.visit(self, "") if val.filter else ""
         group_by = "->" + val.groupBy.visit(self, "") if val.groupBy else ""
