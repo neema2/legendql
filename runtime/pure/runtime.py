@@ -6,5 +6,4 @@ class ReplRuntime(PureRuntime):
     results: Results = None
 
     def eval(self, executable: Executable) -> Results:
-        self.results = self.runtime.eval(executable)
-        return self
+        raise NotImplementedError()
