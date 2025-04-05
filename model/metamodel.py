@@ -135,9 +135,22 @@ class LiteralExpression(Expression):
         return visitor.visit_literal_expression(self, parameter)
 
 @dataclass
-class ReferenceExpression(Expression):
-    name: str
-    alias: str
+class AliasExpression(Expression, ABC):
+    alias: str = None
+
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_alias_expression(self, parameter)
+
+@dataclass
+class SelectionExpression(AliasExpression):
+    name: str = None
+
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_selection_expression(self, parameter)
+
+@dataclass
+class ReferenceExpression(AliasExpression):
+    ref: str = None
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_reference_expression(self, parameter)
@@ -367,6 +380,14 @@ class ExecutionVisitor(ABC):
 
     @abstractmethod
     def visit_binary_expression[P, T](self, val: BinaryExpression, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_alias_expression[P, T](self, val: AliasExpression, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_selection_expression[P, T](self, val: SelectionExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
