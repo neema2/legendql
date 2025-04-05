@@ -32,52 +32,52 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return self.runtime.visit(self, val.table) + "->" + self.visit_selection_clause(val.select, "")
 
     def visit_integer_literal(self, val: IntegerLiteral, parameter: str) -> str:
-        raise NotImplementedError()
+        return str(val.value())
 
     def visit_string_literal(self, val: StringLiteral, parameter: str) -> str:
-        raise NotImplementedError()
+        return "'" + val.value() + "'"
 
     def visit_boolean_literal(self, val: BooleanLiteral, parameter: str) -> str:
-        raise NotImplementedError()
+        return str(val.value())
 
     def visit_operand_expression(self, val: OperandExpression, parameter: str) -> str:
-        raise NotImplementedError()
+        return val.expression.visit(self, "")
     
     def visit_unary_expression(self, val: UnaryExpression, parameter: str) -> str:
-        raise NotImplementedError()
+        return val.operator.visit(self, "") + val.expression.visit(self, "")
 
     def visit_binary_expression(self, val: BinaryExpression, parameter: str) -> str:
-        raise NotImplementedError()
+        return val.left.visit(self, "") + val.operator.visit(self, "") + val.right.visit(self, "")
     
     def visit_not_unary_operator(self, val: NotUnaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return "!"
 
     def visit_equals_binary_operator(self, val: EqualsBinaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return "=="
 
     def visit_not_equals_binary_operator(self, val: NotEqualsBinaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return "!="
 
     def visit_greater_than_binary_operator(self, val: GreaterThanBinaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return ">"
 
     def visit_greater_than_equals_operator(self, val: GreaterThanEqualsBinaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return ">="
 
     def visit_less_than_binary_operator(self, val: LessThanBinaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return "<"
 
     def visit_less_than_equals_binary_operator(self, val: LessThanEqualsBinaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return "<="
 
     def visit_and_binary_operator(self, val: AndBinaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return "and"
 
     def visit_or_binary_operator(self, val: OrBinaryOperator, parameter: str) -> str:
-        raise NotImplementedError()
+        return "or"
     
     def visit_literal_expression(self, val: LiteralExpression, parameter: str) -> str:
-        raise NotImplementedError()
+        return val.literal.visit(self, "")
 
     def visit_reference_expression(self, val: ReferenceExpression, parameter: str) -> str:
         return val.alias
