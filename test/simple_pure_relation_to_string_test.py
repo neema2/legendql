@@ -6,7 +6,6 @@ from ql.legendql import LegendQL
 
 
 class TestPureRelationDialect(unittest.TestCase):
-    """Test cases for column aliasing using walrus operator."""
 
     def setUp(self):
         pass
