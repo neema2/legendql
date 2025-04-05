@@ -11,8 +11,8 @@ class TestPureRelationDialect(unittest.TestCase):
         pass
 
     def test_simple_select_clause(self):
-        runtime = NonExecutablePureRuntime("local::DuckDuckDatabase", "table")
-        data_frame = (LegendQL.create()
+        runtime = NonExecutablePureRuntime("local::DuckDuckDatabase")
+        data_frame = (LegendQL.create("table")
          .select(SelectionClause([ReferenceExpression("column", "col")]))
          .bind(runtime))
         pure_relation = data_frame.executable_to_string()

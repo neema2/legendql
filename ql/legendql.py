@@ -1,12 +1,14 @@
+from dataclasses import dataclass
+
 from model.metamodel import Query, SelectionClause, Runtime, DataFrame
 
-
+@dataclass
 class LegendQL:
-    query: Query = Query()
+    query: Query = None
 
     @classmethod
-    def create(cls):
-        return LegendQL()
+    def create(cls, table: str):
+        return LegendQL(Query(table))
 
     def bind[R: Runtime](self, runtime: R) -> DataFrame:
         return DataFrame(runtime, self.query)
