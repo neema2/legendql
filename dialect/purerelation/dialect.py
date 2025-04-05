@@ -1,12 +1,13 @@
 from abc import ABC
 from dataclasses import dataclass
+from typing import Set
 
 from model.metamodel import ExecutionVisitor, JoinClause, LimitClause, DistinctClause, GroupByClause, ExtendClause, \
     SelectionClause, FilterClause, FunctionExpression, SelectionExpression, LiteralExpression, BinaryExpression, \
     UnaryExpression, OperandExpression, BooleanLiteral, StringLiteral, IntegerLiteral, Query, Runtime, Executable, \
     Results, OrBinaryOperator, AndBinaryOperator, LessThanEqualsBinaryOperator, LessThanBinaryOperator, \
     GreaterThanEqualsBinaryOperator, GreaterThanBinaryOperator, NotEqualsBinaryOperator, EqualsBinaryOperator, \
-    NotUnaryOperator, InnerJoinType, LeftJoinType, RootQuery, ReferenceExpression, AliasExpression
+    NotUnaryOperator, InnerJoinType, LeftJoinType, RootQuery, ReferenceExpression, AliasExpression, ExtendExpression
 
 
 @dataclass
@@ -23,118 +24,121 @@ class NonExecutablePureRuntime(PureRuntime):
 
 class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
 
-    def visit_runtime(self, val: PureRuntime, parameter: []) -> []:
+    def visit_runtime(self, val: PureRuntime, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_root_query(self, val: RootQuery, parameter: []) -> []:
-        return parameter + self.visit_query(val.query, parameter)
+    def visit_root_query(self, val: RootQuery, parameter: Set[str]) -> Set[str]:
+        return parameter | self.visit_query(val.query, parameter)
 
-    def visit_query(self, val: Query, parameter: []) -> []:
+    def visit_query(self, val: Query, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_integer_literal(self, val: IntegerLiteral, parameter: []) -> []:
+    def visit_integer_literal(self, val: IntegerLiteral, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_string_literal(self, val: StringLiteral, parameter: []) -> []:
+    def visit_string_literal(self, val: StringLiteral, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_boolean_literal(self, val: BooleanLiteral, parameter: []) -> []:
+    def visit_boolean_literal(self, val: BooleanLiteral, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_operand_expression(self, val: OperandExpression, parameter: []) -> []:
-        return parameter + val.expression.visit(self, parameter)
+    def visit_operand_expression(self, val: OperandExpression, parameter: Set[str]) -> Set[str]:
+        return parameter | val.expression.visit(self, parameter)
 
-    def visit_unary_expression(self, val: UnaryExpression, parameter: []) -> []:
-        return parameter + val.expression.visit(self, parameter)
+    def visit_unary_expression(self, val: UnaryExpression, parameter: Set[str]) -> Set[str]:
+        return parameter | val.expression.visit(self, parameter)
 
-    def visit_binary_expression(self, val: BinaryExpression, parameter: []) -> []:
-        return parameter + val.left.visit(self, []) + val.right.visit(self, [])
+    def visit_binary_expression(self, val: BinaryExpression, parameter: Set[str]) -> Set[str]:
+        return parameter | val.left.visit(self, set()) | val.right.visit(self, set())
 
-    def visit_not_unary_operator(self, val: NotUnaryOperator, parameter: []) -> []:
+    def visit_not_unary_operator(self, val: NotUnaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_equals_binary_operator(self, val: EqualsBinaryOperator, parameter: []) -> []:
+    def visit_equals_binary_operator(self, val: EqualsBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_not_equals_binary_operator(self, val: NotEqualsBinaryOperator, parameter: []) -> []:
+    def visit_not_equals_binary_operator(self, val: NotEqualsBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_greater_than_binary_operator(self, val: GreaterThanBinaryOperator, parameter: []) -> []:
+    def visit_greater_than_binary_operator(self, val: GreaterThanBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_greater_than_equals_operator(self, val: GreaterThanEqualsBinaryOperator, parameter: []) -> []:
+    def visit_greater_than_equals_operator(self, val: GreaterThanEqualsBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_less_than_binary_operator(self, val: LessThanBinaryOperator, parameter: []) -> []:
+    def visit_less_than_binary_operator(self, val: LessThanBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_less_than_equals_binary_operator(self, val: LessThanEqualsBinaryOperator, parameter: []) -> []:
+    def visit_less_than_equals_binary_operator(self, val: LessThanEqualsBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_and_binary_operator(self, val: AndBinaryOperator, parameter: []) -> []:
+    def visit_and_binary_operator(self, val: AndBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_or_binary_operator(self, val: OrBinaryOperator, parameter: []) -> []:
+    def visit_or_binary_operator(self, val: OrBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_literal_expression(self, val: LiteralExpression, parameter: []) -> []:
+    def visit_literal_expression(self, val: LiteralExpression, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_alias_expression[P, T](self, val: AliasExpression, parameter: P) -> T:
+    def visit_alias_expression[P, T](self, val: AliasExpression, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_selection_expression(self, val: SelectionExpression, parameter: []) -> []:
+    def visit_selection_expression(self, val: SelectionExpression, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_reference_expression(self, val: ReferenceExpression, parameter: []) -> []:
-        return parameter + [val.alias]
+    def visit_reference_expression(self, val: ReferenceExpression, parameter: Set[str]) -> Set[str]:
+        return parameter | set(val.alias)
 
-    def visit_function_expression(self, val: FunctionExpression, parameter: []) -> []:
+    def visit_function_expression(self, val: FunctionExpression, parameter: set) -> set:
         result = parameter
         if val.parameters is not None:
             for param in val.parameters:
-                result = result + param.visit(self, [])
+                result = result | param.visit(self, set())
         return result
 
-    def visit_filter_clause(self, val: FilterClause, parameter: []) -> []:
-        return parameter + val.expression.visit(self, [])
+    def visit_filter_clause(self, val: FilterClause, parameter: Set[str]) -> Set[str]:
+        return parameter |val.expression.visit(self, set())
 
-    def visit_selection_clause(self, val: SelectionClause, parameter: []) -> []:
+    def visit_selection_clause(self, val: SelectionClause, parameter: Set[str]) -> Set[str]:
         result = parameter
         if val.expressions is not None:
             for expression in val.expressions:
-                result = result + expression.visit(self, [])
+                result = result | expression.visit(self, set())
         return result
 
-    def visit_extend_clause(self, val: ExtendClause, parameter: []) -> []:
+    def visit_extend_clause(self, val: ExtendClause, parameter: Set[str]) -> Set[str]:
         result = parameter
         if val.expressions is not None:
             for expression in val.expressions:
-                result = result + expression.visit(self, [])
+                result = result | expression.visit(self, set())
         return result
 
-    def visit_group_by_clause(self, val: GroupByClause, parameter: []) -> []:
+    def visit_extend_expression(self, val: ExtendExpression, parameter: Set[str]) -> Set[str]:
+        return val.expression.visit(self, parameter)
+
+    def visit_group_by_clause(self, val: GroupByClause, parameter: Set[str]) -> Set[str]:
         result = parameter
         if val.expressions is not None:
             for expression in val.expressions:
-                result = result + expression.visit(self, [])
+                result = result | expression.visit(self, set())
         if val.having is not None:
-            result = result + val.having.visit(self, [])
+            result = result | val.having.visit(self, set())
         return result
 
-    def visit_distinct_clause(self, val: DistinctClause, parameter: []) -> []:
+    def visit_distinct_clause(self, val: DistinctClause, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_limit_clause(self, val: LimitClause, parameter: []) -> []:
+    def visit_limit_clause(self, val: LimitClause, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_join_clause(self, val: JoinClause, parameter: []) -> []:
-        return parameter + val.left.visit(self, []) + val.right.visit(self, [])
+    def visit_join_clause(self, val: JoinClause, parameter: Set[str]) -> Set[str]:
+        return parameter | val.left.visit(self, set()) | val.right.visit(self, set())
 
-    def visit_inner_join_type(self, val: InnerJoinType, parameter: []) -> []:
+    def visit_inner_join_type(self, val: InnerJoinType, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_left_join_type(self, val: LeftJoinType, parameter: []) -> []:
+    def visit_left_join_type(self, val: LeftJoinType, parameter: Set[str]) -> Set[str]:
         return parameter
 
 @dataclass
@@ -227,15 +231,18 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return "TODO"
 
     def visit_filter_clause(self, val: FilterClause, parameter: str) -> str:
-        variables = val.expression.visit(self.var_extractor, [])
+        variables = val.expression.visit(self.var_extractor, set())
         return "filter(" + ", ".join(variables) + " | " + val.expression.visit(self, "") + ")"
 
     def visit_selection_clause(self, val: SelectionClause, parameter: str) -> str:
         return "select(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
 
     def visit_extend_clause(self, val: ExtendClause, parameter: str) -> str:
-        #TODO: AJH: this is wrong... think it needs a metamodel change
-        return "extend(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
+        return "extend(" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + ")"
+
+    def visit_extend_expression(self, val: ExtendExpression, parameter: str) -> str:
+        variables = val.expression.visit(self.var_extractor, set())
+        return "~" + val.alias + ":" + ", ".join(variables) + " | [" + val.expression.visit(self, "") + "]"
 
     def visit_group_by_clause(self, val: GroupByClause, parameter: str) -> str:
         #TODO: AJH: this is also wrong... probably needs a metamodel change

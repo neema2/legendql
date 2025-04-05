@@ -3,7 +3,7 @@ import unittest
 from dialect.purerelation.dialect import NonExecutablePureRuntime
 from model.metamodel import SelectionClause, SelectionExpression, FilterClause, ExtendClause, GroupByClause, \
     LimitClause, IntegerLiteral, JoinClause, InnerJoinType, BinaryExpression, ReferenceExpression, LiteralExpression, \
-    EqualsBinaryOperator, OperandExpression, AliasExpression
+    EqualsBinaryOperator, OperandExpression, AliasExpression, ExtendExpression
 from ql.legendql import LegendQL
 
 
@@ -33,10 +33,10 @@ class TestPureRelationDialect(unittest.TestCase):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
         data_frame = (LegendQL.create("local::DuckDuckDatabase", "table")
          .select(SelectionClause([SelectionExpression("col", "column")]))
-         .extend(ExtendClause([SelectionExpression("col2", "column2")]))
+         .extend(ExtendClause([ExtendExpression("a", ReferenceExpression("a", "column"))]))
          .bind(runtime))
         pure_relation = data_frame.executable_to_string()
-        self.assertEqual("#>{local::DuckDuckDatabase.table}#->from(local::DuckDuckRuntime)->select(~[column])->extend(~[column2])", pure_relation)
+        self.assertEqual("#>{local::DuckDuckDatabase.table}#->from(local::DuckDuckRuntime)->select(~[column])->extend(~a:a | [$a.column])", pure_relation)
 
     def test_simple_select_with_groupBy(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")

@@ -182,10 +182,18 @@ class SelectionClause(Clause):
 
 @dataclass
 class ExtendClause(Clause):
-    expressions: List[Expression]
+    expressions: List[ExtendExpression]
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_extend_clause(self, parameter)
+
+@dataclass
+class ExtendExpression(Expression):
+    alias: str
+    expression: Expression
+
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_extend_expression(self, parameter)
 
 @dataclass
 class GroupByClause(Clause):
@@ -408,6 +416,10 @@ class ExecutionVisitor(ABC):
 
     @abstractmethod
     def visit_extend_clause[P, T](self, val: ExtendClause, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_extend_expression[P, T](self, val: ExtendExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
