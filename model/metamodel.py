@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 from typing import List, Any
 from dataclasses import dataclass
 
-class Literal(ABC):
+class Literal[T](ABC):
     @abstractmethod
-    def value(self):
+    def value(self) -> T:
         pass
 
     @abstractmethod
@@ -18,8 +18,8 @@ class IntegerLiteral(Literal):
     def __init__(self, val):
         self.val = val
 
-    def value(self):
-        return self.value
+    def value(self) -> int:
+        return self.val
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_integer_literal(self, parameter)
@@ -30,8 +30,8 @@ class StringLiteral(Literal):
     def __init__(self, val):
         self.str = str
 
-    def value(self):
-        return self.value
+    def value(self) -> str:
+        return self.val
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_string_literal(self, parameter)
@@ -42,8 +42,8 @@ class BooleanLiteral(Literal):
     def __init__(self, val):
         self.str = str
 
-    def value(self):
-        return self.value
+    def value(self) -> bool:
+        return self.val
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_boolean_literal(self, parameter)
@@ -52,19 +52,23 @@ class Function(ABC):
     pass
 
 class Expression(ABC):
-    pass
+    @abstractmethod
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        pass
 
 class Operator(ABC):
-    pass
+    @abstractmethod
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        pass
 
-class UnaryOperator(Operator):
+class UnaryOperator(Operator, ABC):
     pass
 
 class NotUnaryOperator(UnaryOperator):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_not_unary_operator(self, parameter)
 
-class BinaryOperator(Operator):
+class BinaryOperator(Operator, ABC):
     pass
 
 class EqualsBinaryOperator(BinaryOperator):
