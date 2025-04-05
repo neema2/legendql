@@ -16,10 +16,6 @@ repl_process = None
 repl_output_queue = queue.Queue()
 repl_ready = threading.Event()
 
-def stop_repl():
-    if repl_process:
-        repl_process.stop
-
 def start_repl():
     """Start the REPL and keep it running."""
     global repl_process
