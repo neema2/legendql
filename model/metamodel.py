@@ -205,6 +205,7 @@ class Executable(ABC):
 
 @dataclass
 class Query(Executable):
+    database: str
     table: str
     select: SelectionClause = None
     extend: List[ExtendClause] = None
@@ -215,6 +216,13 @@ class Query(Executable):
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_query(self, parameter)
+
+@dataclass
+class RootQuery(Executable):
+    query: Query
+
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_root_query(self, parameter)
 
 class JoinType(ABC):
     @abstractmethod
@@ -258,12 +266,12 @@ class Row:
 
 @dataclass
 class Results:
-    header: Row
-    rows: List[Row]
+    header: Row = None
+    rows: List[Row] = None
 
 class Runtime(ABC):
     @abstractmethod
-    def eval(self, executable: Executable) -> Results:
+    def eval[T](self, executable: Executable) -> T:
         pass
 
     @abstractmethod
@@ -277,10 +285,9 @@ class Runtime(ABC):
 class DataFrame(ABC):
     runtime: Runtime
     executable: Executable
-    results: Results = None
 
-    def eval(self):
-        self.results = self.runtime.eval(self.executable)
+    def eval[T](self) -> T:
+        return self.runtime.eval(self.executable)
 
     def executable_to_string(self) -> str:
         return self.runtime.executable_to_string(self.executable)
@@ -288,6 +295,10 @@ class DataFrame(ABC):
 class ExecutionVisitor(ABC):
     @abstractmethod
     def visit_runtime[P, T, R: Runtime](self, val: R, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_root_query[P, T](self, val: RootQuery, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
