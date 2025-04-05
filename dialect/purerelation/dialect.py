@@ -11,24 +11,25 @@ from model.metamodel import ExecutionVisitor, JoinClause, LimitClause, DistinctC
 @dataclass
 class PureRuntime(Runtime, ABC):
     database: str
-    table: str
 
     def executable_to_string(self, executable: Executable) -> str:
-        visitor = PureRelationExpressionVisitor()
-        return executable.visit(visitor, self.visit(visitor, ""))
+        visitor = PureRelationExpressionVisitor(self)
+        return executable.visit(visitor, "")
 
 class NonExecutablePureRuntime(PureRuntime):
     def eval(self, executable: Executable) -> Results:
         raise NotImplementedError()
 
+@dataclass
 class PureRelationExpressionVisitor(ExecutionVisitor):
+    runtime: PureRuntime
 
     def visit_runtime(self, val: PureRuntime, parameter: str) -> str:
-        return "#>{" + val.database + "." + val.table + "}#"
+        return "#>{" + val.database + "." + parameter + "}#"
 
     def visit_query(self, val: Query, parameter: str) -> str:
         #TODO: AJH: add in the rest
-        return parameter + "->" + self.visit_selection_clause(val.select, "")
+        return self.runtime.visit(self, val.table) + "->" + self.visit_selection_clause(val.select, "")
 
     def visit_integer_literal(self, val: IntegerLiteral, parameter: str) -> str:
         raise NotImplementedError()

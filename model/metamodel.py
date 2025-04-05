@@ -196,13 +196,18 @@ class Executable(ABC):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         pass
 
+    def join(self, query: Query, join_type: JoinType):
+        return JoinClause(self, query, join_type)
+
 @dataclass
 class Query(Executable):
+    table: str
     select: SelectionClause = None
     extend: List[ExtendClause] = None
     filter: FilterClause = None
     groupBy: GroupByClause = None
     limit: LimitClause = None
+    join: JoinClause = None
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_query(self, parameter)
@@ -214,7 +219,7 @@ class JoinType:
 class JoinClause(Clause, Executable):
     left: Executable
     right: Query
-    type: JoinType
+    join_type: JoinType
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_join_clause(self, parameter)
@@ -259,9 +264,6 @@ class DataFrame(ABC):
     runtime: Runtime
     executable: Executable
     results: Results = None
-
-    def join(self, query: Query, type: JoinType):
-        return DataFrame(self.runtime, JoinClause(self.executable, query, type))
 
     def eval(self):
         self.results = self.runtime.eval(self.executable)
