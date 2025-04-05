@@ -49,7 +49,13 @@ class BooleanLiteral(Literal):
         return visitor.visit_boolean_literal(self, parameter)
 
 class Function(ABC):
-    pass
+    @abstractmethod
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        pass
+
+class CountFunction(Function):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_count_function(self, parameter)
 
 class Expression(ABC):
     @abstractmethod
@@ -197,11 +203,21 @@ class ExtendExpression(Expression):
 
 @dataclass
 class GroupByClause(Clause):
-    expressions: List[Expression]
+    selections: List[SelectionExpression]
+    expressions: List[GroupByExpression]
     having: Expression = None
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_group_by_clause(self, parameter)
+
+@dataclass
+class GroupByExpression(Expression):
+    alias: str
+    selection: Expression
+    reduction: Expression
+
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_group_by_expression(self, parameter)
 
 @dataclass
 class DistinctClause(Clause):
@@ -407,6 +423,10 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def visit_count_function[P, T](self, val: CountFunction, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
     def visit_filter_clause[P, T](self, val: FilterClause, parameter: P) -> T:
         raise NotImplementedError()
 
@@ -424,6 +444,10 @@ class ExecutionVisitor(ABC):
 
     @abstractmethod
     def visit_group_by_clause[P, T](self, val: GroupByClause, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_group_by_expression[P, T](self, val: GroupByExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
