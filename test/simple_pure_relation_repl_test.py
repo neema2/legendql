@@ -24,8 +24,6 @@ class TestPureRelationDialect(unittest.TestCase):
          .select(SelectionClause([ReferenceExpression("id", "id"), ReferenceExpression("departmentId", "departmentId"), ReferenceExpression("first", "first"), ReferenceExpression("last", "last")]))
          .bind(runtime))
         results = data_frame.eval()
-        print("--------HERE---------")
-        print(results)
         self.assertEqual("""> +--------+--------------+------------+------------+
 |   id   | departmentId |   first    |    last    |
 | BIGINT |    BIGINT    | VARCHAR(0) | VARCHAR(0) |
