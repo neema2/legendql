@@ -1,6 +1,6 @@
 import unittest
 
-from model.metamodel import SelectionClause, ReferenceExpression
+from model.metamodel import SelectionClause, SelectionExpression
 from ql.legendql import LegendQL
 from runtime.pure.repl_utils import is_repl_running, send_to_repl, load_csv_to_repl
 from runtime.pure.runtime import ReplRuntime
@@ -21,7 +21,7 @@ class TestPureRelationDialect(unittest.TestCase):
     def test_simple_select(self):
         runtime = ReplRuntime("local::DuckDuckRuntime")
         data_frame = (LegendQL.create("local::DuckDuckDatabase", "employees")
-         .select(SelectionClause([ReferenceExpression("id", "id"), ReferenceExpression("departmentId", "departmentId"), ReferenceExpression("first", "first"), ReferenceExpression("last", "last")]))
+         .select(SelectionClause([SelectionExpression("id", "id"), SelectionExpression("departmentId", "departmentId"), SelectionExpression("first", "first"), SelectionExpression("last", "last")]))
          .bind(runtime))
         results = data_frame.eval()
         self.assertEqual("""> +--------+--------------+------------+------------+
