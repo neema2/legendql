@@ -1,6 +1,8 @@
 import unittest
 
-from model.metamodel import SelectionClause, SelectionExpression
+from model.metamodel import SelectionClause, SelectionExpression, FilterClause, BinaryExpression, OperandExpression, \
+    ReferenceExpression, LiteralExpression, IntegerLiteral, EqualsBinaryOperator, StringLiteral, ExtendClause, \
+    GroupByClause, AliasExpression, LimitClause
 from ql.legendql import LegendQL
 from runtime.pure.repl_utils import is_repl_running, send_to_repl, load_csv_to_repl
 from runtime.pure.runtime import ReplRuntime
@@ -32,3 +34,15 @@ class TestPureRelationDialect(unittest.TestCase):
 |   2    |      1       |    Jane    |     Doe    |
 +--------+--------------+------------+------------+
 2 rows -- 4 columns""", results[:results.rfind("columns") + 7])
+
+    def test_complex_query(self):
+        runtime = ReplRuntime("local::DuckDuckRuntime")
+        data_frame = (LegendQL.create("local::DuckDuckDatabase", "employees")
+         .filter(FilterClause(BinaryExpression(OperandExpression(ReferenceExpression("r", "departmentId")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator())))
+         .select(SelectionClause([SelectionExpression("departmentId", "departmentId")]))
+         # .extend(ExtendClause([SelectionExpression("last", "last")]))
+         # .groupBy(GroupByClause([AliasExpression("departmentId")]))
+         .limit(LimitClause(IntegerLiteral(1)))
+         .bind(runtime))
+        results = data_frame.eval()
+        print(results)

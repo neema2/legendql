@@ -153,13 +153,14 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
 
     def visit_query_with_runtime(self, val: Query, parameter: str, runtime: PureRuntime = None) -> str:
         from_clause = "->from(" + runtime.visit(self, "") + ")" if runtime else ""
-        select = "#>{" + val.database + "." + val.table + "}#" + from_clause + "->" + self.visit_selection_clause(val.select, "") if val.select else ""
-        extend = "->".join(map(lambda expr: "->" + expr.visit(self, ""), val.extend)) if val.extend else ""
+        database_clause = "#>{" + val.database + "." + val.table + "}#" + from_clause
         filter_expr = "->" + val.filter.visit(self, "") if val.filter else ""
+        select = "->" + self.visit_selection_clause(val.select, "") if val.select else ""
+        extend = "->".join(map(lambda expr: "->" + expr.visit(self, ""), val.extend)) if val.extend else ""
         group_by = "->" + val.groupBy.visit(self, "") if val.groupBy else ""
         limit = "->" + val.limit.visit(self, "") if val.limit else ""
         join = "->" + val.join.visit(self, "") if val.join else ""
-        return select + extend + filter_expr + group_by + limit + join
+        return database_clause + select + filter_expr + extend + group_by + limit + join
 
     def visit_integer_literal(self, val: IntegerLiteral, parameter: str) -> str:
         return str(val.value())
@@ -233,9 +234,11 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return "select(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
 
     def visit_extend_clause(self, val: ExtendClause, parameter: str) -> str:
+        #TODO: AJH: this is wrong... think it needs a metamodel change
         return "extend(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
 
     def visit_group_by_clause(self, val: GroupByClause, parameter: str) -> str:
+        #TODO: AJH: this is also wrong... probably needs a metamodel change
         having = ", " + val.having.visit(self, "") if val.having else ""
         return "groupBy(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "]" + having + ")"
 

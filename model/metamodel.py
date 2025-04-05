@@ -28,7 +28,7 @@ class IntegerLiteral(Literal):
 class StringLiteral(Literal):
     val: str
     def __init__(self, val):
-        self.str = str
+        self.val = val
 
     def value(self) -> str:
         return self.val
@@ -40,7 +40,7 @@ class StringLiteral(Literal):
 class BooleanLiteral(Literal):
     val: bool
     def __init__(self, val):
-        self.str = str
+        self.val = val
 
     def value(self) -> bool:
         return self.val
