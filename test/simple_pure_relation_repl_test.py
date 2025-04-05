@@ -2,7 +2,7 @@ import unittest
 
 from model.metamodel import SelectionClause, SelectionExpression, FilterClause, BinaryExpression, OperandExpression, \
     ReferenceExpression, LiteralExpression, IntegerLiteral, EqualsBinaryOperator, StringLiteral, ExtendClause, \
-    GroupByClause, AliasExpression, LimitClause
+    GroupByClause, AliasExpression, LimitClause, ExtendExpression
 from ql.legendql import LegendQL
 from runtime.pure.repl_utils import is_repl_running, send_to_repl, load_csv_to_repl
 from runtime.pure.runtime import ReplRuntime
@@ -40,7 +40,7 @@ class TestPureRelationDialect(unittest.TestCase):
         data_frame = (LegendQL.create("local::DuckDuckDatabase", "employees")
          .filter(FilterClause(BinaryExpression(OperandExpression(ReferenceExpression("r", "departmentId")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator())))
          .select(SelectionClause([SelectionExpression("departmentId", "departmentId")]))
-         # .extend(ExtendClause([SelectionExpression("last", "last")]))
+         .extend(ExtendClause([ExtendExpression("newCol", ReferenceExpression("x", "departmentId"))]))
          # .groupBy(GroupByClause([AliasExpression("departmentId")]))
          .limit(LimitClause(IntegerLiteral(1)))
          .bind(runtime))
