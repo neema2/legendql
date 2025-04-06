@@ -233,29 +233,12 @@ class LimitClause(Clause):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_limit_clause(self, parameter)
 
-class Executable(ABC):
-    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        pass
-
 @dataclass
-class SourcedExecutable(Executable, ABC):
+class FromClause(Clause):
     database: str
     table: str
-    executable: Executable
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_source_executable(self, parameter)
-
-@dataclass
-class Query(Executable):
-    select: SelectionClause = None
-    extend: List[ExtendClause] = None
-    filter: FilterClause = None
-    groupBy: GroupByClause = None
-    limit: LimitClause = None
-    join: SourcedExecutable = None
-
-    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_query(self, parameter)
+        return visitor.visit_from_clause(self, parameter)
 
 class JoinType(ABC):
     @abstractmethod
@@ -278,8 +261,8 @@ class JoinExpression(Expression):
         return visitor.visit_join_expression(self, parameter)
 
 @dataclass
-class JoinClause(Clause, Executable):
-    target: Executable
+class JoinClause(Clause):
+    from_clause: FromClause
     join_type: JoinType
     on_clause: JoinExpression
 
@@ -311,11 +294,11 @@ class Results:
 
 class Runtime(ABC):
     @abstractmethod
-    def eval[T](self, executable: Executable) -> T:
+    def eval[T](self, clauses: List[Clause]) -> T:
         pass
 
     @abstractmethod
-    def executable_to_string(self, executable: Executable) -> str:
+    def executable_to_string(self, clauses: List[Clause]) -> str:
         pass
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
@@ -324,13 +307,13 @@ class Runtime(ABC):
 @dataclass
 class DataFrame(ABC):
     runtime: Runtime
-    executable: Executable
+    clauses: List[Clause]
 
     def eval[T](self) -> T:
-        return self.runtime.eval(self.executable)
+        return self.runtime.eval(self.clauses)
 
     def executable_to_string(self) -> str:
-        return self.runtime.executable_to_string(self.executable)
+        return self.runtime.executable_to_string(self.clauses)
 
 class ExecutionVisitor(ABC):
     @abstractmethod
@@ -338,11 +321,7 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_source_executable[P, T](self, val: SourcedExecutable, parameter: P) -> T:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def visit_query[P, T](self, val: Query, parameter: P) -> T:
+    def visit_from_clause[P, T](self, val: FromClause, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
