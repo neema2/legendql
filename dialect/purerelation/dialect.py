@@ -5,7 +5,7 @@ from typing import Set, List
 from model.metamodel import ExecutionVisitor, JoinClause, LimitClause, DistinctClause, GroupByClause, ExtendClause, \
     SelectionClause, FilterClause, FunctionExpression, SelectionExpression, LiteralExpression, BinaryExpression, \
     UnaryExpression, OperandExpression, BooleanLiteral, StringLiteral, IntegerLiteral, Query, Runtime, Executable, \
-    Results, OrBinaryOperator, AndBinaryOperator, LessThanEqualsBinaryOperator, LessThanBinaryOperator, \
+    OrBinaryOperator, AndBinaryOperator, LessThanEqualsBinaryOperator, LessThanBinaryOperator, \
     GreaterThanEqualsBinaryOperator, GreaterThanBinaryOperator, NotEqualsBinaryOperator, EqualsBinaryOperator, \
     NotUnaryOperator, InnerJoinType, LeftJoinType, ReferenceExpression, AliasExpression, ExtendExpression, \
     GroupByExpression, CountFunction, SourcedExecutable, JoinExpression, Expression
@@ -82,7 +82,7 @@ class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
     def visit_literal_expression(self, val: LiteralExpression, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_alias_expression[P, T](self, val: AliasExpression, parameter: Set[str]) -> Set[str]:
+    def visit_alias_expression(self, val: AliasExpression, parameter: Set[str]) -> Set[str]:
         return parameter | set(val.alias)
 
     def visit_selection_expression(self, val: SelectionExpression, parameter: Set[str]) -> Set[str]:

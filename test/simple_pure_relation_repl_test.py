@@ -1,7 +1,7 @@
 import unittest
 
 from model.metamodel import SelectionClause, SelectionExpression, FilterClause, BinaryExpression, OperandExpression, \
-    ReferenceExpression, LiteralExpression, IntegerLiteral, EqualsBinaryOperator, StringLiteral, ExtendClause, \
+    ReferenceExpression, LiteralExpression, IntegerLiteral, EqualsBinaryOperator, ExtendClause, \
     GroupByClause, AliasExpression, LimitClause, ExtendExpression, GroupByExpression, FunctionExpression, CountFunction, \
     InnerJoinType, JoinExpression
 from ql.legendql import LegendQL
@@ -43,7 +43,7 @@ class TestPureRelationDialect(unittest.TestCase):
          .filter(FilterClause(BinaryExpression(OperandExpression(ReferenceExpression("r", "departmentId")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator())))
          .select(SelectionClause([SelectionExpression("departmentId", "departmentId")]))
          .extend(ExtendClause([ExtendExpression("newCol", ReferenceExpression("x", "departmentId"))]))
-         .groupBy(GroupByClause([SelectionExpression("newCol", "newCol")], [GroupByExpression("count", ReferenceExpression("x", "newCol"), FunctionExpression(CountFunction(), [AliasExpression("x")]))]))
+         .group_by(GroupByClause([SelectionExpression("newCol", "newCol")], [GroupByExpression("count", ReferenceExpression("x", "newCol"), FunctionExpression(CountFunction(), [AliasExpression("x")]))]))
          .limit(LimitClause(IntegerLiteral(1)))
          .join(departments, InnerJoinType(), JoinExpression(BinaryExpression(OperandExpression(ReferenceExpression("a", "newCol")), OperandExpression(ReferenceExpression("b", "id")), EqualsBinaryOperator())))
          .bind(runtime))
