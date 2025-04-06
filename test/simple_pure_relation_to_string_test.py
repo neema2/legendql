@@ -15,7 +15,7 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_simple_select(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
-        data_frame = (LegendQL.create("local::DuckDuckDatabase", "table")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
          .select(SelectionClause([SelectionExpression("col", "column")]))
          .bind(runtime))
         pure_relation = data_frame.executable_to_string()
@@ -23,7 +23,7 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_simple_select_with_filter(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
-        data_frame = (LegendQL.create("local::DuckDuckDatabase", "table")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
          .select(SelectionClause([SelectionExpression("col", "column")]))
          .filter(FilterClause(BinaryExpression(OperandExpression(ReferenceExpression("a", "column")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator())))
          .bind(runtime))
@@ -32,7 +32,7 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_simple_select_with_extend(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
-        data_frame = (LegendQL.create("local::DuckDuckDatabase", "table")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
          .select(SelectionClause([SelectionExpression("col", "column")]))
          .extend(ExtendClause([ExtendExpression("a", ReferenceExpression("a", "column"))]))
          .bind(runtime))
@@ -41,7 +41,7 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_simple_select_with_groupBy(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
-        data_frame = (LegendQL.create("local::DuckDuckDatabase", "table")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
          .select(SelectionClause([SelectionExpression("col", "column")]))
          .group_by(GroupByClause([SelectionExpression("col", "column")], [GroupByExpression("count", ReferenceExpression("a", "column"), FunctionExpression(CountFunction(), [AliasExpression("a")]))]))
          .bind(runtime))
@@ -50,7 +50,7 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_simple_select_with_limit(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
-        data_frame = (LegendQL.create("local::DuckDuckDatabase", "table")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
           .select(SelectionClause([SelectionExpression("col", "column")]))
           .limit(LimitClause(IntegerLiteral(10)))
           .bind(runtime))
@@ -60,9 +60,9 @@ class TestPureRelationDialect(unittest.TestCase):
     def test_simple_select_with_join(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
 
-        join_query = (LegendQL.create("local::DuckDuckDatabase", "table2").select(SelectionClause([SelectionExpression("col2", "column2")])))
+        join_query = (LegendQL.from_db("local::DuckDuckDatabase", "table2").select(SelectionClause([SelectionExpression("col2", "column2")])))
 
-        data_frame = (LegendQL.create("local::DuckDuckDatabase", "table")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
           .select(SelectionClause([SelectionExpression("col", "column")]))
           .join(join_query, InnerJoinType(), JoinExpression(BinaryExpression(OperandExpression(ReferenceExpression("a", "column")), OperandExpression(ReferenceExpression("b", "column")), EqualsBinaryOperator())))
           .bind(runtime))

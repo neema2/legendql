@@ -10,7 +10,7 @@ class LegendQL:
     _executable: SourcedExecutable = None
 
     @classmethod
-    def create(cls, database: str, table: str) -> LegendQL:
+    def from_db(cls, database: str, table: str) -> LegendQL:
         return LegendQL(SourcedExecutable(database, table, Query()))
 
     def bind[R: Runtime](self, runtime: R) -> DataFrame:
