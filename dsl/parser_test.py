@@ -1,11 +1,11 @@
 import unittest
 
-from functions import AggregateFunction, SumFunction, CountFunction, AvgFunction, UnboundedFunction, OverFunction, \
-    RowsFunction, StringConcatFunction
+from functions import StringConcatFunction, AggregateFunction, SumFunction, CountFunction, OverFunction, AvgFunction, \
+    UnboundedFunction, RowsFunction
 from legendql import LegendQL
 from parser import Parser
-from metamodel import BinaryExpression, ColumnReference, LiteralExpression, BinaryOperator, ColumnExpression, \
-    SortExpression, Sort
+from metamodel import *
+
 
 class ParserTest(unittest.TestCase):
 
@@ -21,6 +21,7 @@ class ParserTest(unittest.TestCase):
             right=ColumnReference(name='id', table='department'),
             operator=BinaryOperator(value='=')))
 
+
     def test_filter(self):
         lq = LegendQL.from_("employee", {})
         filter = lambda e: e.start_date > '2021-01-01'
@@ -30,6 +31,7 @@ class ParserTest(unittest.TestCase):
             left=ColumnReference(name='start_date', table='employee'),
             right=LiteralExpression(value='2021-01-01'),
             operator=BinaryOperator(value='>')))  # add assertion here
+
 
     def test_nested_filter(self):
         lq = LegendQL.from_("employee", {})
@@ -53,6 +55,7 @@ class ParserTest(unittest.TestCase):
                 operator=BinaryOperator(value='AND')),
             operator=BinaryOperator(value='OR')))
 
+
     def test_extend(self):
         lq = LegendQL.from_("employee", {})
         extend = lambda e: [
@@ -60,7 +63,6 @@ class ParserTest(unittest.TestCase):
             (gross_cost := gross_salary + e.benefits)]
 
         p = Parser.parse(extend, lq.query)
-        print(p)
 
         self.assertEqual(p, [
             ColumnExpression(
@@ -77,6 +79,7 @@ class ParserTest(unittest.TestCase):
                     operator=BinaryOperator(value='+')))
         ])
 
+
     def test_sort(self):
         lq = LegendQL.from_("employee", {})
         sort = lambda e: [e.sum_gross_cost, -e.country]
@@ -87,6 +90,7 @@ class ParserTest(unittest.TestCase):
             SortExpression(direction=Sort.DESC, expression=ColumnReference(name='country', table='employee'))
         ])
 
+
     def test_fstring(self):
         lq = LegendQL.from_("employee", {})
         fstring = lambda e: (id := f"{e.title}_{e.country}")
@@ -94,11 +98,13 @@ class ParserTest(unittest.TestCase):
 
         self.assertEqual(p, ColumnExpression(
             name='id',
-            expression=StringConcatFunction(
+            expression=FunctionExpression(
+                function=StringConcatFunction(),
                 parameters=[
                     ColumnReference(name='title', table='employee'),
                     LiteralExpression(value='_'),
                     ColumnReference(name='country', table='employee')])))
+
 
     def test_aggregate(self):
         lq = LegendQL.from_("employee", {})
@@ -108,25 +114,33 @@ class ParserTest(unittest.TestCase):
             having=r.sum_salary > 100_000)
 
         p = Parser.parse(group, lq.query)
+        print(p)
 
-        self.assertEqual(p, AggregateFunction(
-            columns=[ColumnReference(name='id', table='employee'), ColumnReference(name='name', table='employee')],
-            functions=[
-                ColumnExpression(
+        f = FunctionExpression(
+            function=AggregateFunction(),
+            parameters=[
+                [ColumnReference(name='id', table='employee'),
+                 ColumnReference(name='name', table='employee')],
+                [ColumnExpression(
                     name='sum_salary',
-                    expression=SumFunction(
+                    expression=FunctionExpression(
+                        function=SumFunction(),
                         parameters=[BinaryExpression(
                             left=ColumnReference(name='salary', table='employee'),
                             right=LiteralExpression(value=1),
                             operator=BinaryOperator(value='+'))])),
-                ColumnExpression(
+                 ColumnExpression(
                     name='count_dept',
-                    expression=CountFunction(
+                    expression=FunctionExpression(
+                        function=CountFunction(),
                         parameters=[ColumnReference(name='department_name', table='employee')]))],
-            having=BinaryExpression(
-                left=ColumnReference(name='sum_salary', table='employee'),
-                right=LiteralExpression(value=100000),
-                operator=BinaryOperator(value='>'))))
+                BinaryExpression(
+                    left=ColumnReference(name='sum_salary', table='employee'),
+                    right=LiteralExpression(value=100000),
+                    operator=BinaryOperator(value='>'))])
+        print(f)
+
+        self.assertEqual(str(p), str(f))
 
     def test_window(self):
         lq = LegendQL.from_("employee", {})
@@ -134,21 +148,27 @@ class ParserTest(unittest.TestCase):
                             over(r.location, avg(r.salary), sort=[r.emp_name, -r.location], frame=rows(0, unbounded())))
 
         p = Parser.parse(window, lq.query)
+        print(p)
 
-        self.assertEqual(p, ColumnExpression(
+        f = ColumnExpression(
             name='avg_val',
-            expression=OverFunction(
-                ColumnReference(name='location', table='employee'),
-                AvgFunction(parameters=[ColumnReference(name='salary', table='employee')]),
-                sort=[
-                    ColumnReference(name='emp_name', table='employee'),
-                    SortExpression(direction=Sort.DESC, expression=ColumnReference(name='location', table='employee'))
-                ],
-                frame = RowsFunction(
-                    parameters=[],
-                    start=LiteralExpression(value=0),
-                    end=UnboundedFunction(parameters=[])),
-                qualify= None)))
+            expression=FunctionExpression(
+                function=OverFunction(),
+                parameters=[
+                    ColumnReference(name='location', table='employee'),
+                    FunctionExpression(
+                        function=AvgFunction(),
+                        parameters=[ColumnReference(name='salary', table='employee')]),
+                    [ColumnReference(name='emp_name', table='employee'),
+                     SortExpression(
+                         direction=Sort.DESC,
+                         expression=ColumnReference(name='location', table='employee'))],
+                    FunctionExpression(
+                        function=RowsFunction(),
+                        parameters=[LiteralExpression(value=0),
+                                    FunctionExpression(function=UnboundedFunction(), parameters=[])])]))
+
+        self.assertEqual(p, f)
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,9 +10,10 @@ import inspect
 from _ast import operator
 from typing import Callable, List, Union
 
-from functions import AggregateFunction, OverFunction, RowsFunction, RangeFunction, StringConcatFunction
+from functions import StringConcatFunction
 from metamodel import Expression, ColumnExpression, BinaryExpression, BinaryOperator, \
-    ColumnReference, BooleanLiteral, IfExpression, NotExpression, SortExpression, Sort, Query
+    ColumnReference, BooleanLiteral, IfExpression, NotExpression, SortExpression, Sort, Query, FunctionExpression
+
 
 class Parser:
 
@@ -283,7 +284,7 @@ class Parser:
             # Handle function calls (e.g., sum(x.col1 - x.col2))
 
             args_list = []
-            kwargs = {}
+            # kwargs = {}
 
             if isinstance(node.func, ast.Name):
                 # Parse the arguments to the function
@@ -293,10 +294,11 @@ class Parser:
                     args_list.append(parsed_arg)
 
                 # Handle keyword arguments
-                kwargs = {}
+                # kwargs = {}
                 for kw in node.keywords:
                     parsed_kw = Parser._parse_expression(kw.value, alias)
-                    kwargs[kw.arg] = parsed_kw
+                    # kwargs[kw.arg] = parsed_kw
+                    args_list.append(parsed_kw)
 
             else:
                 ValueError(f"Unsupported function type: {node.func}")
@@ -305,21 +307,10 @@ class Parser:
             #    ValueError(f"Unknown function name: {node.func.id}")
 
             # very brittle, lots more checks needed here
-            if node.func.id == 'over':
-                return OverFunction(
-                    args_list[0], args_list[1],
-                    sort=kwargs.get("sort"), frame=kwargs.get("frame"), qualify=kwargs.get("qualify"))
-            elif node.func.id == "aggregate":
-                return AggregateFunction(args_list[0], args_list[1], having=kwargs.get("having"))
-            elif node.func.id == "rows":
-                return RowsFunction(start=args_list[0], end=args_list[1], parameters=[])
-            elif node.func.id == "range":
-                return RangeFunction(start=args_list[0], end=args_list[1], parameters=[])
-            else:
-                module = importlib.import_module("functions")
-                class_ = getattr(module, f"{node.func.id.title()}Function")
-                instance = class_(args_list)
-                return instance
+            module = importlib.import_module("functions")
+            class_ = getattr(module, f"{node.func.id.title()}Function")
+            instance = class_()
+            return FunctionExpression(instance, parameters=args_list)
 
         elif isinstance(node, ast.JoinedStr):
             # Handle fstring (e.g. f"hello{blah}")
@@ -334,7 +325,7 @@ class Parser:
                     else:
                         expr.append(Parser._parse_expression(value.value, alias))
 
-            return StringConcatFunction(expr)
+            return FunctionExpression(StringConcatFunction(), expr)
 
         elif isinstance(node, ast.Subscript):
             # Handle subscript operations (e.g., x[0], x['key'])
