@@ -59,12 +59,10 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_simple_select_with_join(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
-
-        join_query = (LegendQL.from_db("local::DuckDuckDatabase", "table2").select(SelectionClause([SelectionExpression("col2", "column2")])))
-
         data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
           .select(SelectionClause([SelectionExpression("col", "column")]))
-          .join(join_query, InnerJoinType(), JoinExpression(BinaryExpression(OperandExpression(ReferenceExpression("a", "column")), OperandExpression(ReferenceExpression("b", "column")), EqualsBinaryOperator())))
+          .join("local::DuckDuckDatabase", "table2", InnerJoinType(), JoinExpression(BinaryExpression(OperandExpression(ReferenceExpression("a", "column")), OperandExpression(ReferenceExpression("b", "column")), EqualsBinaryOperator())))
+          .select(SelectionClause([SelectionExpression("col2", "column2")]))
           .bind(runtime))
         pure_relation = data_frame.executable_to_string()
         self.assertEqual("#>{local::DuckDuckDatabase.table}#->select(~[column])->join(#>{local::DuckDuckDatabase.table2}#, JoinKind.INNER, {a, b | $a.column==$b.column})->select(~[column2])->from(local::DuckDuckRuntime)", pure_relation)

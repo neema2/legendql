@@ -38,14 +38,14 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_complex_query(self):
         runtime = ReplRuntime("local::DuckDuckRuntime")
-        departments = LegendQL.from_db("local::DuckDuckDatabase", "departments").select(SelectionClause([SelectionExpression("id", "id")]))
         data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "employees")
          .filter(FilterClause(BinaryExpression(OperandExpression(ReferenceExpression("r", "departmentId")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator())))
          .select(SelectionClause([SelectionExpression("departmentId", "departmentId")]))
          .extend(ExtendClause([ExtendExpression("newCol", ReferenceExpression("x", "departmentId"))]))
          .group_by(GroupByClause([SelectionExpression("newCol", "newCol")], [GroupByExpression("count", ReferenceExpression("x", "newCol"), FunctionExpression(CountFunction(), [AliasExpression("x")]))]))
          .limit(LimitClause(IntegerLiteral(1)))
-         .join(departments, InnerJoinType(), JoinExpression(BinaryExpression(OperandExpression(ReferenceExpression("a", "newCol")), OperandExpression(ReferenceExpression("b", "id")), EqualsBinaryOperator())))
+         .join("local::DuckDuckDatabase", "departments", InnerJoinType(), JoinExpression(BinaryExpression(OperandExpression(ReferenceExpression("a", "newCol")), OperandExpression(ReferenceExpression("b", "id")), EqualsBinaryOperator())))
+         .select(SelectionClause([SelectionExpression("id", "id")]))
          .bind(runtime))
         results = data_frame.eval()
         self.assertEqual("""> +--------+

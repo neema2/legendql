@@ -4,23 +4,23 @@ from typing import Set, List
 
 from model.metamodel import ExecutionVisitor, JoinClause, LimitClause, DistinctClause, GroupByClause, ExtendClause, \
     SelectionClause, FilterClause, FunctionExpression, SelectionExpression, LiteralExpression, BinaryExpression, \
-    UnaryExpression, OperandExpression, BooleanLiteral, StringLiteral, IntegerLiteral, Query, Runtime, Executable, \
+    UnaryExpression, OperandExpression, BooleanLiteral, StringLiteral, IntegerLiteral, Runtime, \
     OrBinaryOperator, AndBinaryOperator, LessThanEqualsBinaryOperator, LessThanBinaryOperator, \
     GreaterThanEqualsBinaryOperator, GreaterThanBinaryOperator, NotEqualsBinaryOperator, EqualsBinaryOperator, \
     NotUnaryOperator, InnerJoinType, LeftJoinType, ReferenceExpression, AliasExpression, ExtendExpression, \
-    GroupByExpression, CountFunction, SourcedExecutable, JoinExpression, Expression
+    GroupByExpression, CountFunction, JoinExpression, Expression, Clause, FromClause
 
 
 @dataclass
 class PureRuntime(Runtime, ABC):
     name: str
 
-    def executable_to_string(self, executable: Executable) -> str:
+    def executable_to_string(self, clauses: List[Clause]) -> str:
         visitor = PureRelationExpressionVisitor(self)
-        return executable.visit(visitor, "") + self.visit(visitor, "")
+        return "->".join(map(lambda clause: clause.visit(visitor, ""), clauses)) + self.visit(visitor, "")
 
 class NonExecutablePureRuntime(PureRuntime):
-    def eval(self, executable: Executable) -> str:
+    def eval(self, clauses: List[Clause]) -> str:
         raise NotImplementedError()
 
 class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
@@ -28,10 +28,7 @@ class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
     def visit_runtime(self, val: PureRuntime, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_source_executable(self, val: SourcedExecutable, parameter: Set[str]) -> Set[str]:
-        return parameter
-
-    def visit_query(self, val: Query, parameter: Set[str]) -> Set[str]:
+    def visit_from_clause(self, val: FromClause, parameter: Set[str]) -> Set[str]:
         return parameter
 
     def visit_integer_literal(self, val: IntegerLiteral, parameter: Set[str]) -> Set[str]:
@@ -140,7 +137,7 @@ class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
         return parameter
 
     def visit_join_clause(self, val: JoinClause, parameter: Set[str]) -> Set[str]:
-        return parameter | val.target.visit(self, set()) | val.on_clause.visit(self, set())
+        return parameter | val.on_clause.visit(self, set())
 
     def visit_join_expression(self, val: JoinExpression, parameter: Set[str]) -> Set[str]:
         raise val.on.visit(self, parameter)
@@ -162,17 +159,8 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
     def visit_runtime(self, val: PureRuntime, parameter: str) -> str:
         return "->from(" + val.name + ")"
 
-    def visit_source_executable(self, val: SourcedExecutable, parameter: str) -> str:
-        return  val.executable.visit(self, "#>{" + val.database + "." + val.table + "}#")
-
-    def visit_query(self, val: Query, parameter: str) -> str:
-        filter_expr = "->" + val.filter.visit(self, "") if val.filter else ""
-        select = "->" + self.visit_selection_clause(val.select, "") if val.select else ""
-        extend = "->".join(map(lambda expr: "->" + expr.visit(self, ""), val.extend)) if val.extend else ""
-        group_by = "->" + val.groupBy.visit(self, "") if val.groupBy else ""
-        limit = "->" + val.limit.visit(self, "") if val.limit else ""
-        join = "->" + val.join.visit(self, "") if val.join else ""
-        return parameter + select + filter_expr + extend + group_by + limit + join
+    def visit_from_clause(self, val: FromClause, parameter: str) -> str:
+        return  "#>{" + val.database + "." + val.table + "}#"
 
     def visit_integer_literal(self, val: IntegerLiteral, parameter: str) -> str:
         return str(val.value())
@@ -281,7 +269,7 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return "{" + ", ".join(on_vars) + " | " + val.on.visit(self, "") + "}"
 
     def visit_join_clause(self, val: JoinClause, parameter: str) -> str:
-        return "join(" + parameter  + ", " + val.join_type.visit(self, "") + ", " + val.on_clause.visit(self, "") + ")" + val.target.visit(self, "")
+        return "join(" + val.from_clause.visit(self, "")  + ", " + val.join_type.visit(self, "") + ", " + val.on_clause.visit(self, "") + ")"
 
     def visit_inner_join_type(self, val: InnerJoinType, parameter: str) -> str:
         return "JoinKind.INNER"
