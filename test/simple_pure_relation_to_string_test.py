@@ -36,7 +36,7 @@ class TestPureRelationDialect(unittest.TestCase):
          .extend([ExtendExpression("a", ReferenceExpression("a", "column"))])
          .bind(runtime))
         pure_relation = data_frame.executable_to_string()
-        self.assertEqual("#>{local::DuckDuckDatabase.table}#->select(~[column])->extend(~a:a | [$a.column])->from(local::DuckDuckRuntime)", pure_relation)
+        self.assertEqual("#>{local::DuckDuckDatabase.table}#->select(~[column])->extend(~[a:a | $a.column])->from(local::DuckDuckRuntime)", pure_relation)
 
     def test_simple_select_with_groupBy(self):
         runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
@@ -65,3 +65,13 @@ class TestPureRelationDialect(unittest.TestCase):
           .bind(runtime))
         pure_relation = data_frame.executable_to_string()
         self.assertEqual("#>{local::DuckDuckDatabase.table}#->select(~[column])->join(#>{local::DuckDuckDatabase.table2}#, JoinKind.INNER, {a, b | $a.column==$b.column})->select(~[column2])->from(local::DuckDuckRuntime)", pure_relation)
+
+    def test_multiple_extends(self):
+        runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
+                      .extend([ExtendExpression("a", ReferenceExpression("a", "column")), ExtendExpression("b", ReferenceExpression("b", "column"))])
+                      .bind(runtime))
+        pure_relation = data_frame.executable_to_string()
+        self.assertEqual(
+            "#>{local::DuckDuckDatabase.table}#->extend(~[a:a | $a.column, b:b | $b.column])->from(local::DuckDuckRuntime)",
+            pure_relation)

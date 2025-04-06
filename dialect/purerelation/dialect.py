@@ -236,11 +236,11 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return "select(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
 
     def visit_extend_clause(self, val: ExtendClause, parameter: str) -> str:
-        return "extend(" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + ")"
+        return "extend(~[" + ", ".join(map(lambda expr: expr.visit(self, ""), val.expressions)) + "])"
 
     def visit_extend_expression(self, val: ExtendExpression, parameter: str) -> str:
         variables = self.extract_variables(val.expression)
-        return "~" + val.alias + ":" + ", ".join(variables) + " | [" + val.expression.visit(self, "") + "]"
+        return val.alias + ":" + ", ".join(variables) + " | " + val.expression.visit(self, "")
 
     def visit_group_by_clause(self, val: GroupByClause, parameter: str) -> str:
         #->groupBy(~[departmentId], ~[count: x | $x.departmentId : d | $d->count(), count2: x | $x.departmentId : d | $d->count()])
