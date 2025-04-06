@@ -83,6 +83,7 @@ class ReferenceExpression(Expression):
 
 @dataclass
 class FunctionExpression(Expression):
+    function: Function
     parameters: List[Expression]
 
 @dataclass
@@ -108,6 +109,9 @@ class NotExpression(Expression):
 class Sort(Enum):
     ASC = "ASC"
     DESC = "DESC"
+
+    def __str__(self):
+        return self.value
 
 @dataclass
 class SortExpression(Expression):

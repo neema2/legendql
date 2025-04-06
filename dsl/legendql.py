@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Callable, Type, Dict, List
 
-import parser
-from functions import *
-from metamodel import SelectClause, ExtendClause, FilterClause, GroupByClause, JoinClause, Query, JoinType
+from dsl import parser
+from dsl.dsl_functions import *
+from metamodel import SelectClause, ExtendClause, FilterClause, GroupByClause, JoinClause, Query, JoinType, Expression
 
 @dataclass
 class LegendQL:
@@ -51,7 +52,7 @@ class LegendQL:
 
         return self
 
-    def join(self, query: Query, condition: Callable, select: Optional[Callable] = None) -> LegendQL:
+    def join(self, lq: LegendQL, join: Callable) -> LegendQL:
         return self
 
     def left_join(self, lq: LegendQL, join: Callable) -> LegendQL:
@@ -72,13 +73,13 @@ class LegendQL:
 
         return self
 
-    def right_join(self, table: LegendQL, condition: Callable, select: Optional[Callable]) -> LegendQL:
+    def right_join(self, lq: LegendQL, join: Callable) -> LegendQL:
         return self
 
-    def outer_join(self, table: LegendQL, condition: Callable, select: Optional[Callable]) -> LegendQL:
+    def outer_join(self, lq: LegendQL, join: Callable) -> LegendQL:
         return self
 
-    def asof_join(self, table: LegendQL, condition: Callable, select: Optional[Callable]) -> LegendQL:
+    def asof_join(self, lq: LegendQL, join: Callable) -> LegendQL:
         return self
 
     def order_by(self, columns: Callable) -> LegendQL:

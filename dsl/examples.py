@@ -20,7 +20,7 @@ dep = LegendQL.from_("department", columns={ "id": int, "name": str, "city": str
  .group_by(lambda r: aggregate(
     [ r.id, r.name ],
     [ sum_salary := sum(r.salary), count_dept := count(r.department_name) ],
-    having=r.sum_salary > 100_000))
+    having=sum_salary > 100_000))
  .filter(lambda r: r.id > 100)
  .extend(lambda r: (calc_col := r.name + r.title))
  )
@@ -43,8 +43,8 @@ lq = lq.filter(lambda e: e.gross_cost > 0)
 lq = lq.group_by(lambda e: aggregate(
         [e.title, e.country],
         [avg_gross_salary := avg(e.gross_salary), sum_gross_cost := sum(e.gross_cost)],
-        having=e.sum_gross_cost > 100_000))
-lq = lq.extend(lambda e: (id := f"{e.title}_{e.country}"))
+        having=sum_gross_cost > 100_000))
+lq = lq.extend(lambda e: (new_id := f"{e.title}_{e.country}"))
 lq = lq.extend(lambda e: (country_code := left(e.country, 2)))
 lq = lq.order_by(lambda e: [e.sum_gross_cost, -e.country])
 lq = lq.limit(10)
@@ -67,7 +67,7 @@ lq = (LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": s
     [avg_gross_salary := avg(e.gross_salary),
      sum_gross_cost := sum(e.gross_cost)],
     having=e.sum_gross_cost > 100_000))
- .extend(lambda e: (id := f"{e.title}_{e.country}"))
+ .extend(lambda e: (new_id := f"{e.title}_{e.country}"))
  .extend(lambda e: (country_code := left(e.country, 2)))
  .order_by(lambda e: [e.sum_gross_cost, -e.country])
  .limit(10))
@@ -83,10 +83,43 @@ emp = (
 LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float })
  .extend(lambda r: (
     avg_val := over(
-        r.location, avg(r.salary),
+        r.location,
+        (avg_val := avg(r.salary)),
         sort=[r.emp_name, -r.location],
         frame=rows(0, unbounded()),
         qualify=avg_val > 100_000)))
+ )
+
+for clause in emp.query.clauses:
+    print(clause)
+
+emp = (
+LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float })
+ .extend(lambda r: (avg_val := over(r.location, avg(r.salary))))
+ )
+
+for clause in emp.query.clauses:
+    print(clause)
+
+emp = (
+LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float })
+ .group_by(lambda r: aggregate(r.title, avg_gross_salary := avg(r.gross_salary)))
+ )
+
+for clause in emp.query.clauses:
+    print(clause)
+
+emp = (
+LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float })
+ .group_by(lambda r: aggregate([r.title, r.dept_id], avg_gross_salary := avg(r.gross_salary)))
+ )
+
+for clause in emp.query.clauses:
+    print(clause)
+
+emp = (
+LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float })
+ .group_by(lambda r: aggregate(r.title, avg_gross_salary := avg(r.gross_salary), having=avg_gross_salary > 100_000))
  )
 
 for clause in emp.query.clauses:

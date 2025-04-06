@@ -1,14 +1,38 @@
 from dataclasses import dataclass
-from typing import Optional, Union
 
-from metamodel import Expression, FunctionExpression
+from dsl.dsl_functions import count
+from dsl.metamodel import Function
+
 
 @dataclass
-class AggregationFunction(FunctionExpression):
+class AggregationFunction(Function):
+    # sum(), min(), max(), count(), avg()
     pass
 
 @dataclass
-class ScalarFunction(FunctionExpression):
+class ScalarFunction(Function):
+    # date_diff(), left(), abs() ..
+    pass
+
+@dataclass
+class WindowFunction(Function):
+    # rank(), row_number(), first(), last() ..
+    pass
+
+@dataclass
+class RankFunction(WindowFunction):
+    pass
+
+@dataclass
+class RowNumberFunction(WindowFunction):
+    pass
+
+@dataclass
+class LeadFunction(WindowFunction):
+    pass
+
+@dataclass
+class LagFunction(WindowFunction):
     pass
 
 @dataclass
@@ -32,65 +56,21 @@ class SumFunction(AggregationFunction):
     pass
 
 @dataclass
-class AggregateFunction(FunctionExpression):
-    columns: Union[Expression, list[Expression]]
-    functions: Union[Expression, list[Expression]]
-    having: Optional[Expression] = None
-
-    def __init__(self,
-                 columns: Union[Expression, list[Expression]],
-                 functions: Union[Expression, list[Expression]],
-                 having: Optional[Expression] = None):
-        self.parameters = []
-        self.columns = columns
-        self.functions = functions
-        self.having = having
-
-@dataclass
-class UnboundedFunction(FunctionExpression):
+class OverFunction(ScalarFunction):
     pass
 
 @dataclass
-class Frame(FunctionExpression):
-    start: Union[int, UnboundedFunction, Expression]
-    end: Union[int, UnboundedFunction, Expression]
-
-@dataclass
-class RowsFunction(Frame):
+class RowsFunction(ScalarFunction):
     pass
 
 @dataclass
-class RangeFunction(Frame):
+class RangeFunction(ScalarFunction):
     pass
 
 @dataclass
-class OverFunction(FunctionExpression):
-    columns: Union[Expression, list[Expression]]
-    functions: Union[Expression, list[Expression]]
-    sort: Optional[Union[Expression, list[Expression]]]
-    frame: Optional[Frame]
-    qualify: Optional[Expression] = None
+class UnboundedFunction(ScalarFunction):
+    pass
 
-    def __init__(self,
-                 columns: Union[Expression, list[Expression]],
-                 functions: Union[Expression, list[Expression]],
-                 sort: Optional[Union[Expression, list[Expression]]],
-                 frame: Optional[Frame],
-                 qualify: Optional[Expression] = None):
-        self.parameters = []
-        self.columns = columns
-        self.functions = functions
-        self.sort = sort
-        self.frame = frame
-        self.qualify = qualify
-
-
-left = LeftFunction
-avg = AvgFunction
-count = CountFunction
-sum = SumFunction
-aggregate = AggregateFunction
-over = OverFunction
-unbounded = UnboundedFunction
-rows = RowsFunction
-range = RangeFunction
+@dataclass
+class AggregateFunction(ScalarFunction):
+    pass
