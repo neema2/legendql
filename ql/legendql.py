@@ -28,11 +28,11 @@ class LegendQL:
         self._executable.executable.extend.append(extend)
         return self
 
-    def filter(self, filter: FilterClause) -> LegendQL:
-        self._executable.executable.filter = filter
+    def filter(self, filter_clause: FilterClause) -> LegendQL:
+        self._executable.executable.filter = filter_clause
         return self
 
-    def groupBy(self, group_by: GroupByClause) -> LegendQL:
+    def group_by(self, group_by: GroupByClause) -> LegendQL:
         self._executable.executable.groupBy = group_by
         return self
 

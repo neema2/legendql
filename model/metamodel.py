@@ -398,7 +398,7 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_literal_expression[P, T](self, literalExpression: LiteralExpression, parameter: P) -> T:
+    def visit_literal_expression[P, T](self, val: LiteralExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
