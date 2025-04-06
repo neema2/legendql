@@ -237,29 +237,25 @@ class Executable(ABC):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         pass
 
-    def join(self, query: Query, join_type: JoinType):
-        return JoinClause(self, query, join_type)
+@dataclass
+class SourcedExecutable(Executable, ABC):
+    database: str
+    table: str
+    executable: Executable
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_source_executable(self, parameter)
 
 @dataclass
 class Query(Executable):
-    database: str
-    table: str
     select: SelectionClause = None
     extend: List[ExtendClause] = None
     filter: FilterClause = None
     groupBy: GroupByClause = None
     limit: LimitClause = None
-    join: JoinClause = None
+    join: SourcedExecutable = None
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_query(self, parameter)
-
-@dataclass
-class RootQuery(Executable):
-    query: Query
-
-    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_root_query(self, parameter)
 
 class JoinType(ABC):
     @abstractmethod
@@ -275,10 +271,17 @@ class LeftJoinType(JoinType):
         return visitor.visit_left_join_type(self, parameter)
 
 @dataclass
+class JoinExpression(Expression):
+    on: Expression
+
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_join_expression(self, parameter)
+
+@dataclass
 class JoinClause(Clause, Executable):
-    left: Executable
-    right: Executable
+    target: Executable
     join_type: JoinType
+    on_clause: JoinExpression
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_join_clause(self, parameter)
@@ -335,7 +338,7 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_root_query[P, T](self, val: RootQuery, parameter: P) -> T:
+    def visit_source_executable[P, T](self, val: SourcedExecutable, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
@@ -456,6 +459,10 @@ class ExecutionVisitor(ABC):
 
     @abstractmethod
     def visit_limit_clause[P, T](self, val: LimitClause, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_join_expression[P, T](self, val: JoinExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod

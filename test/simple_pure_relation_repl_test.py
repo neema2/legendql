@@ -2,7 +2,8 @@ import unittest
 
 from model.metamodel import SelectionClause, SelectionExpression, FilterClause, BinaryExpression, OperandExpression, \
     ReferenceExpression, LiteralExpression, IntegerLiteral, EqualsBinaryOperator, StringLiteral, ExtendClause, \
-    GroupByClause, AliasExpression, LimitClause, ExtendExpression, GroupByExpression, FunctionExpression, CountFunction
+    GroupByClause, AliasExpression, LimitClause, ExtendExpression, GroupByExpression, FunctionExpression, CountFunction, \
+    InnerJoinType, JoinExpression
 from ql.legendql import LegendQL
 from runtime.pure.repl_utils import is_repl_running, send_to_repl, load_csv_to_repl
 from runtime.pure.runtime import ReplRuntime
@@ -37,18 +38,20 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_complex_query(self):
         runtime = ReplRuntime("local::DuckDuckRuntime")
+        departments = LegendQL.create("local::DuckDuckDatabase", "departments").select(SelectionClause([SelectionExpression("id", "id")]))
         data_frame = (LegendQL.create("local::DuckDuckDatabase", "employees")
          .filter(FilterClause(BinaryExpression(OperandExpression(ReferenceExpression("r", "departmentId")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator())))
          .select(SelectionClause([SelectionExpression("departmentId", "departmentId")]))
          .extend(ExtendClause([ExtendExpression("newCol", ReferenceExpression("x", "departmentId"))]))
          .groupBy(GroupByClause([SelectionExpression("newCol", "newCol")], [GroupByExpression("count", ReferenceExpression("x", "newCol"), FunctionExpression(CountFunction(), [AliasExpression("x")]))]))
          .limit(LimitClause(IntegerLiteral(1)))
+         .join(departments, InnerJoinType(), JoinExpression(BinaryExpression(OperandExpression(ReferenceExpression("a", "newCol")), OperandExpression(ReferenceExpression("b", "id")), EqualsBinaryOperator())))
          .bind(runtime))
         results = data_frame.eval()
-        self.assertEqual("""> +--------+-------+
-| newCol | count |
-| BIGINT |       |
-+--------+-------+
-|   1    |   2   |
-+--------+-------+
-1 rows -- 2 columns""", results[:results.rfind("columns") + 7])
+        self.assertEqual("""> +--------+
+|   id   |
+| BIGINT |
++--------+
+|   1    |
++--------+
+1 rows -- 1 columns""", results[:results.rfind("columns") + 7])
