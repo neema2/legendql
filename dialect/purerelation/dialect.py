@@ -214,9 +214,6 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
         return "$" + val.alias
 
     def visit_selection_expression(self, val: SelectionExpression, parameter: str) -> str:
-        #TODO: AJH: find right syntax for aliases
-        # if val.alias:
-        #     return "'" + val.name + " " + val.alias + "'"
         return val.name
 
     def visit_reference_expression(self, val: ReferenceExpression, parameter: str) -> str:

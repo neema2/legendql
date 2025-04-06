@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from typing import List
 
 from model.metamodel import SelectionClause, Runtime, DataFrame, FilterClause, ExtendClause, GroupByClause, \
-    LimitClause, JoinClause, JoinType, JoinExpression, Clause, FromClause
+    LimitClause, JoinClause, JoinType, JoinExpression, Clause, FromClause, Expression, IntegerLiteral, \
+    SelectionExpression, GroupByExpression, ExtendExpression
 
 
 @dataclass
@@ -20,26 +21,26 @@ class LegendQL:
     def eval[R: Runtime, T](self, runtime: R) -> T:
         return self.bind(runtime).eval()
 
-    def select(self, select: SelectionClause) -> LegendQL:
-        self._clauses.append(select)
+    def select(self, *names: str) -> LegendQL:
+        self._clauses.append(SelectionClause(list(map(lambda name: SelectionExpression(name), names))))
         return self
 
-    def extend(self, extend: ExtendClause) -> LegendQL:
-        self._clauses.append(extend)
+    def extend(self, extend: List[ExtendExpression]) -> LegendQL:
+        self._clauses.append(ExtendClause(extend))
         return self
 
-    def filter(self, filter_clause: FilterClause) -> LegendQL:
-        self._clauses.append(filter_clause)
+    def filter(self, filter_clause: Expression) -> LegendQL:
+        self._clauses.append(FilterClause(filter_clause))
         return self
 
-    def group_by(self, group_by: GroupByClause) -> LegendQL:
-        self._clauses.append(group_by)
+    def group_by(self, selections: List[str], group_by: List[GroupByExpression], having: Expression = None) -> LegendQL:
+        self._clauses.append(GroupByClause(list(map(lambda name: SelectionExpression(name), selections)), group_by, having))
         return self
 
-    def limit(self, limit: LimitClause) -> LegendQL:
-        self._clauses.append(limit)
+    def limit(self, limit: int) -> LegendQL:
+        self._clauses.append(LimitClause(IntegerLiteral(limit)))
         return self
 
-    def join(self, database: str, table: str, join_type: JoinType, on_clause: JoinExpression) -> LegendQL:
-        self._clauses.append(JoinClause(FromClause(database, table), join_type, on_clause))
+    def join(self, database: str, table: str, join_type: JoinType, on_clause: Expression) -> LegendQL:
+        self._clauses.append(JoinClause(FromClause(database, table), join_type, JoinExpression(on_clause)))
         return self

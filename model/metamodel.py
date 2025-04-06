@@ -148,7 +148,7 @@ class AliasExpression(Expression, ABC):
         return visitor.visit_alias_expression(self, parameter)
 
 @dataclass
-class SelectionExpression(AliasExpression):
+class SelectionExpression(Expression):
     name: str = None
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
@@ -181,7 +181,7 @@ class FilterClause(Clause):
 
 @dataclass
 class SelectionClause(Clause):
-    expressions: List[Expression]
+    expressions: List[SelectionExpression]
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_selection_clause(self, parameter)

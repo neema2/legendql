@@ -1,9 +1,8 @@
 import unittest
 
-from model.metamodel import SelectionClause, SelectionExpression, FilterClause, BinaryExpression, OperandExpression, \
-    ReferenceExpression, LiteralExpression, IntegerLiteral, EqualsBinaryOperator, ExtendClause, \
-    GroupByClause, AliasExpression, LimitClause, ExtendExpression, GroupByExpression, FunctionExpression, CountFunction, \
-    InnerJoinType, JoinExpression
+from model.metamodel import BinaryExpression, OperandExpression, ReferenceExpression, LiteralExpression, \
+    IntegerLiteral, EqualsBinaryOperator, AliasExpression, ExtendExpression, GroupByExpression, \
+    FunctionExpression, CountFunction, InnerJoinType
 from ql.legendql import LegendQL
 from runtime.pure.repl_utils import is_repl_running, send_to_repl, load_csv_to_repl
 from runtime.pure.runtime import ReplRuntime
@@ -24,7 +23,7 @@ class TestPureRelationDialect(unittest.TestCase):
     def test_simple_select(self):
         runtime = ReplRuntime("local::DuckDuckRuntime")
         data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "employees")
-         .select(SelectionClause([SelectionExpression("id", "id"), SelectionExpression("departmentId", "departmentId"), SelectionExpression("first", "first"), SelectionExpression("last", "last")]))
+         .select("id", "departmentId", "first", "last")
          .bind(runtime))
         results = data_frame.eval()
         self.assertEqual("""> +--------+--------------+------------+------------+
@@ -39,13 +38,13 @@ class TestPureRelationDialect(unittest.TestCase):
     def test_complex_query(self):
         runtime = ReplRuntime("local::DuckDuckRuntime")
         data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "employees")
-         .filter(FilterClause(BinaryExpression(OperandExpression(ReferenceExpression("r", "departmentId")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator())))
-         .select(SelectionClause([SelectionExpression("departmentId", "departmentId")]))
-         .extend(ExtendClause([ExtendExpression("newCol", ReferenceExpression("x", "departmentId"))]))
-         .group_by(GroupByClause([SelectionExpression("newCol", "newCol")], [GroupByExpression("count", ReferenceExpression("x", "newCol"), FunctionExpression(CountFunction(), [AliasExpression("x")]))]))
-         .limit(LimitClause(IntegerLiteral(1)))
-         .join("local::DuckDuckDatabase", "departments", InnerJoinType(), JoinExpression(BinaryExpression(OperandExpression(ReferenceExpression("a", "newCol")), OperandExpression(ReferenceExpression("b", "id")), EqualsBinaryOperator())))
-         .select(SelectionClause([SelectionExpression("id", "id")]))
+         .filter(BinaryExpression(OperandExpression(ReferenceExpression("r", "departmentId")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator()))
+         .select("departmentId")
+         .extend([ExtendExpression("newCol", ReferenceExpression("x", "departmentId"))])
+         .group_by(["newCol"], [GroupByExpression("count", ReferenceExpression("x", "newCol"), FunctionExpression(CountFunction(), [AliasExpression("x")]))])
+         .limit(1)
+         .join("local::DuckDuckDatabase", "departments", InnerJoinType(), BinaryExpression(OperandExpression(ReferenceExpression("a", "newCol")), OperandExpression(ReferenceExpression("b", "id")), EqualsBinaryOperator()))
+         .select("id")
          .bind(runtime))
         results = data_frame.eval()
         self.assertEqual("""> +--------+
