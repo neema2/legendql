@@ -3,7 +3,7 @@ import unittest
 from dialect.purerelation.dialect import NonExecutablePureRuntime
 from model.metamodel import IntegerLiteral, InnerJoinType, BinaryExpression, ReferenceExpression, LiteralExpression, \
     EqualsBinaryOperator, OperandExpression, AliasExpression, ExtendExpression, GroupByExpression, FunctionExpression, \
-    CountFunction
+    CountFunction, AddBinaryOperator, SubtractBinaryOperator, MultiplyBinaryOperator, DivideBinaryOperator
 from ql.legendql import LegendQL
 
 
@@ -74,4 +74,19 @@ class TestPureRelationDialect(unittest.TestCase):
         pure_relation = data_frame.executable_to_string()
         self.assertEqual(
             "#>{local::DuckDuckDatabase.table}#->extend(~[a:a | $a.column, b:b | $b.column])->from(local::DuckDuckRuntime)",
+            pure_relation)
+
+    def test_add_math_binary_operators(self):
+        runtime = NonExecutablePureRuntime("local::DuckDuckRuntime")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "table")
+                      .extend([
+                                  ExtendExpression("add", BinaryExpression(left=OperandExpression(ReferenceExpression("a", "column")), right=OperandExpression(ReferenceExpression("a", "column")), operator=AddBinaryOperator())),
+                                  ExtendExpression("subtract", BinaryExpression(left=OperandExpression(ReferenceExpression("a", "column")), right=OperandExpression(ReferenceExpression("a", "column")), operator=SubtractBinaryOperator())),
+                                  ExtendExpression("multiply", BinaryExpression(left=OperandExpression(ReferenceExpression("a", "column")), right=OperandExpression(ReferenceExpression("a", "column")), operator=MultiplyBinaryOperator())),
+                                  ExtendExpression("divide", BinaryExpression(left=OperandExpression(ReferenceExpression("a", "column")), right=OperandExpression(ReferenceExpression("a", "column")), operator=DivideBinaryOperator())),
+                              ])
+                      .bind(runtime))
+        pure_relation = data_frame.executable_to_string()
+        self.assertEqual(
+            "#>{local::DuckDuckDatabase.table}#->extend(~[add:a | $a.column+$a.column, subtract:a | $a.column-$a.column, multiply:a | $a.column*$a.column, divide:a | $a.column/$a.column])->from(local::DuckDuckRuntime)",
             pure_relation)
