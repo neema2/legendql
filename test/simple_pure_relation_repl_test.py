@@ -23,7 +23,7 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_simple_select(self):
         runtime = ReplRuntime("local::DuckDuckRuntime")
-        data_frame = (LegendQL.create("local::DuckDuckDatabase", "employees")
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "employees")
          .select(SelectionClause([SelectionExpression("id", "id"), SelectionExpression("departmentId", "departmentId"), SelectionExpression("first", "first"), SelectionExpression("last", "last")]))
          .bind(runtime))
         results = data_frame.eval()
@@ -38,8 +38,8 @@ class TestPureRelationDialect(unittest.TestCase):
 
     def test_complex_query(self):
         runtime = ReplRuntime("local::DuckDuckRuntime")
-        departments = LegendQL.create("local::DuckDuckDatabase", "departments").select(SelectionClause([SelectionExpression("id", "id")]))
-        data_frame = (LegendQL.create("local::DuckDuckDatabase", "employees")
+        departments = LegendQL.from_db("local::DuckDuckDatabase", "departments").select(SelectionClause([SelectionExpression("id", "id")]))
+        data_frame = (LegendQL.from_db("local::DuckDuckDatabase", "employees")
          .filter(FilterClause(BinaryExpression(OperandExpression(ReferenceExpression("r", "departmentId")), OperandExpression(LiteralExpression(IntegerLiteral(1))), EqualsBinaryOperator())))
          .select(SelectionClause([SelectionExpression("departmentId", "departmentId")]))
          .extend(ExtendClause([ExtendExpression("newCol", ReferenceExpression("x", "departmentId"))]))
