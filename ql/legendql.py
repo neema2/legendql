@@ -17,7 +17,7 @@ class LegendQL:
     def bind[R: Runtime](self, runtime: R) -> DataFrame:
         return DataFrame(runtime, self._clauses)
 
-    def eval[R: Runtime](self, runtime: R) -> DataFrame:
+    def eval[R: Runtime, T](self, runtime: R) -> T:
         return self.bind(runtime).eval()
 
     def select(self, select: SelectionClause) -> LegendQL:
