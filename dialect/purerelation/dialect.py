@@ -77,16 +77,16 @@ class ReferenceNameExtractorExpressionVisitor(ExecutionVisitor):
     def visit_or_binary_operator(self, val: OrBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_add_binary_operator[P, T](self, val: AddBinaryOperator, parameter: P) -> T:
+    def visit_add_binary_operator(self, val: AddBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_multiply_binary_operator[P, T](self, val: MultiplyBinaryOperator, parameter: P) -> T:
+    def visit_multiply_binary_operator(self, val: MultiplyBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_subtract_binary_operator[P, T](self, val: SubtractBinaryOperator, parameter: P) -> T:
+    def visit_subtract_binary_operator(self, val: SubtractBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
-    def visit_divide_binary_operator[P, T](self, val: DivideBinaryOperator, parameter: P) -> T:
+    def visit_divide_binary_operator(self, val: DivideBinaryOperator, parameter: Set[str]) -> Set[str]:
         return parameter
 
     def visit_literal_expression(self, val: LiteralExpression, parameter: Set[str]) -> Set[str]:
@@ -220,16 +220,16 @@ class PureRelationExpressionVisitor(ExecutionVisitor):
     def visit_or_binary_operator(self, val: OrBinaryOperator, parameter: str) -> str:
         return "or"
 
-    def visit_add_binary_operator[P, T](self, val: AddBinaryOperator, parameter: P) -> T:
+    def visit_add_binary_operator(self, val: AddBinaryOperator, parameter: str) -> str:
         return "+"
 
-    def visit_multiply_binary_operator[P, T](self, val: MultiplyBinaryOperator, parameter: P) -> T:
+    def visit_multiply_binary_operator(self, val: MultiplyBinaryOperator, parameter: str) -> str:
         return "*"
 
-    def visit_subtract_binary_operator[P, T](self, val: SubtractBinaryOperator, parameter: P) -> T:
+    def visit_subtract_binary_operator(self, val: SubtractBinaryOperator, parameter: str) -> str:
         return "-"
 
-    def visit_divide_binary_operator[P, T](self, val: DivideBinaryOperator, parameter: P) -> T:
+    def visit_divide_binary_operator(self, val: DivideBinaryOperator, parameter: str) -> str:
         return "/"
     
     def visit_literal_expression(self, val: LiteralExpression, parameter: str) -> str:
