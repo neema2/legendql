@@ -109,6 +109,22 @@ class OrBinaryOperator(BinaryOperator):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_or_binary_operator(self, parameter)
 
+class AddBinaryOperator(BinaryOperator):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_add_binary_operator(self, parameter)
+
+class MultiplyBinaryOperator(BinaryOperator):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_multiply_binary_operator(self, parameter)
+
+class SubtractBinaryOperator(BinaryOperator):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_subtract_binary_operator(self, parameter)
+
+class DivideBinaryOperator(BinaryOperator):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_divide_binary_operator(self, parameter)
+
 @dataclass
 class OperandExpression(Expression):
     expression: Expression
@@ -374,6 +390,22 @@ class ExecutionVisitor(ABC):
 
     @abstractmethod
     def visit_or_binary_operator[P, T](self, val: OrBinaryOperator, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_add_binary_operator[P, T](self, val: AddBinaryOperator, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_multiply_binary_operator[P, T](self, val: MultiplyBinaryOperator, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_subtract_binary_operator[P, T](self, val: SubtractBinaryOperator, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_divide_binary_operator[P, T](self, val: DivideBinaryOperator, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
