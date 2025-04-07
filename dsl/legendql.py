@@ -5,20 +5,28 @@ from typing import Callable, Type, Dict, List
 
 from dsl import parser
 from dsl.dsl_functions import *
-from metamodel import SelectClause, ExtendClause, FilterClause, GroupByClause, JoinClause, Query, JoinType, Expression
+from dsl.metamodel import FromClause, WithClause
+from metamodel import SelectClause, ExtendClause, FilterClause, GroupByClause, JoinClause, JoinType, Expression, Clause
+from dsl.schema import Schema
 
-@dataclass
+
 class LegendQL:
 
-    def __init__(self, query: Query):
-        self.query = query
+    schema: Schema
+    _clauses: List[Clause]
+
+    def __init__(self, schema: Schema, from_clause: FromClause):
+        self.schema = schema
+        self._clauses = [from_clause]
 
     @classmethod
     def from_(cls, name: str, columns: Dict[str, Type]) -> LegendQL:
-        return LegendQL(Query(name, columns))
+        return LegendQL(Schema(name, columns), FromClause(name, name))
 
-    def let(self, df : LegendQL) -> LegendQL:
+    def let(self, name: str, cte: LegendQL) -> LegendQL:
         # CommonTableExpression ("with" in SQL)
+        self._clauses.append(WithClause(name, name))
+
         return self
 
     def recurse(self, df : LegendQL) -> LegendQL:
@@ -29,26 +37,26 @@ class LegendQL:
         return self
 
     def select(self, columns: Callable) -> LegendQL:
-        clause = SelectClause(parser.Parser.parse(columns, self.query))
-        self.query.clauses.append(clause)
+        clause = SelectClause(parser.Parser.parse(columns, self.schema))
+        self._clauses.append(clause)
 
         return self
 
     def extend(self, columns: Callable) -> LegendQL:
-        clause = ExtendClause(parser.Parser.parse(columns, self.query))
-        self.query.clauses.append(clause)
+        clause = ExtendClause(parser.Parser.parse(columns, self.schema))
+        self._clauses.append(clause)
 
         return self
 
     def filter(self, condition: Callable) -> LegendQL:
-        clause = FilterClause(parser.Parser.parse(condition, self.query))
-        self.query.clauses.append(clause)
+        clause = FilterClause(parser.Parser.parse(condition, self.schema))
+        self._clauses.append(clause)
 
         return self
 
     def group_by(self, aggr: Callable) -> LegendQL:
-        clause = GroupByClause(parser.Parser.parse(aggr, self.query))
-        self.query.clauses.append(clause)
+        clause = GroupByClause(parser.Parser.parse(aggr, self.schema))
+        self._clauses.append(clause)
 
         return self
 
@@ -57,17 +65,17 @@ class LegendQL:
 
     def left_join(self, lq: LegendQL, join: Callable) -> LegendQL:
 
-        expr = parser.Parser.parse_join(join, self.query, lq.query)
+        expr = parser.Parser.parse_join(join, self.schema, lq.schema)
 
         if isinstance(expr, Expression):
-            clause = JoinClause(right=lq.query, condition=expr, type=JoinType())
-            self.query.clauses.append(clause)
+            clause = JoinClause(right=lq.schema, condition=expr, type=JoinType())
+            self._clauses.append(clause)
         elif isinstance(expr, List) and len(expr) == 2:
-            clause = JoinClause(right=lq.query, condition=expr[0], type=JoinType())
-            self.query.clauses.append(clause)
+            clause = JoinClause(right=lq.schema, condition=expr[0], type=JoinType())
+            self._clauses.append(clause)
 
             clause = SelectClause([expr[1]])
-            self.query.clauses.append(clause)
+            self._clauses.append(clause)
         else:
             raise ValueError(f"Badly formed Join: {join} {expr}")
 
@@ -94,17 +102,5 @@ class LegendQL:
 
     def offset(self, offset: int) -> LegendQL:
         return self
-
-    def validate_column(self, column_name: str) -> bool:
-        """
-        Validate that a column exists in the schema.
-
-        Args:
-            column_name: The name of the column to validate
-
-        Returns:
-            True if the column exists, False otherwise
-        """
-        return column_name in self.query.columns
 
 # [for func in inspect.getmembers(LegendQL, inspect.isfunction)]

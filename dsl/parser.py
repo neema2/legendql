@@ -8,17 +8,18 @@ import ast
 import importlib
 import inspect
 from _ast import operator
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Dict
 
 from functions import StringConcatFunction
 from metamodel import Expression, ColumnExpression, BinaryExpression, BinaryOperator, \
-    ColumnReference, BooleanLiteral, IfExpression, NotExpression, SortExpression, Sort, Query, FunctionExpression
+    ColumnReference, BooleanLiteral, IfExpression, NotExpression, SortExpression, Sort, FunctionExpression
+from dsl.schema import Schema
 
 
 class Parser:
 
     @staticmethod
-    def parse(func: Callable, query: Query) -> Union[Expression, List[Expression]]:
+    def parse(func: Callable, schema: Schema) -> Union[Expression, List[Expression]]:
         """
         Parse a lambda function and convert it to an Expression or list of Expressions.
 
@@ -28,7 +29,7 @@ class Parser:
                 - A lambda that returns a column reference (e.g., lambda x: x.name)
                 - A lambda that returns an array of column references (e.g., lambda x: [x.name, x.age])
                 - A lambda that returns tuples with sort direction (e.g., lambda x: [(x.department, Sort.DESC)])
-            query: the current LegendQL query context
+            schema: the current LegendQL query context
 
         Returns:
             An Expression or list of Expressions representing the lambda function
@@ -40,7 +41,7 @@ class Parser:
         if len(lambda_args) != 1:
             raise ValueError(f"Lambda MUST exactly 1 argument: {lambda_args}")
 
-        alias = {lambda_args[0].arg: query.name}
+        alias = {lambda_args[0].arg: schema}
 
         # Parse the lambda body
         result = Parser._parse_expression(lambda_node.body, alias)
@@ -52,14 +53,14 @@ class Parser:
         return result
 
     @staticmethod
-    def parse_join(func: Callable, query: Query, join: Query) -> Union[Expression, List[Expression]]:
+    def parse_join(func: Callable, schema: Schema, join: Schema) -> Union[Expression, List[Expression]]:
         """
         Specifically parse the JOIN lambda function and convert it to an Expression or list of Expressions.
 
         Args:
             func: The lambda function to parse. Must be a 2 argument lambda:
                 - A lambda that returns a boolean expression (e.g., lambda x, y: x.col1 == y.col2)
-            query: the current LegendQL query context
+            schema: the current LegendQL query context
             join: the LegendQL query context we want to join to
 
         Returns:
@@ -73,7 +74,7 @@ class Parser:
             raise ValueError(f"Join Lambda MUST have 2 arguments: {lambda_args}")
 
         # map the lambda args to the table names for the query
-        alias = {lambda_args[0].arg: query.name, lambda_args[1].arg: join.name}
+        alias = {lambda_args[0].arg: schema, lambda_args[1].arg: join}
 
         # Parse the lambda body
         result = Parser._parse_expression(lambda_node.body, alias)
@@ -82,31 +83,35 @@ class Parser:
 
     @staticmethod
     def _get_lambda_node(func):
+        source_lines, _ = inspect.getsourcelines(func)
+        source_text = ''.join(source_lines).strip().replace("\n", "")
+
         try:
-            source_lines, _ = inspect.getsourcelines(func)
-            source_text = ''.join(source_lines).strip()
-
-            funcs = ['asof_join', 'distinct', 'extend', 'filter', 'group_by', 'join', 'left_join', 'let', 'limit',
-                     'offset', 'order_by', 'outer_join', 'qualify', 'recurse', 'right_join', 'select']
-            for func in funcs:
-                idx = source_text.find(f"{func}(")
-                if idx != -1:
-                    source_text = source_text[idx + len(func) + 1:len(source_text) - 1]
-                    break
-
-            # Parse the source code using ast
+            # if it is lambda on own line this should work
             source_ast = ast.parse(source_text)
-            lambda_node = next((node for node in ast.walk(source_ast) if isinstance(node, ast.Lambda)), None)
+        except:
+            # fluent api way
+            idx = source_text.find("lambda")
+            source_text = source_text[idx:len(source_text) - 1]
 
-            if not lambda_node:
-                raise ValueError("Could not find lambda expression in source code")
+            try:
+                # fluent api way
+                source_ast = ast.parse(source_text)
+            except:
+                # is it on the last line? try to strip out one more
+                source_text = source_text[:len(source_text) - 1]
 
-        except Exception:
-            raise ValueError("Error getting Lambda")
+                try:
+                    source_ast = ast.parse(source_text)
+                except:
+                    raise ValueError(f"Could not get Lambda func: {source_text}")
+
+        lambda_node = next((node for node in ast.walk(source_ast) if isinstance(node, ast.Lambda)), None)
+
         return lambda_node
 
     @staticmethod
-    def _parse_expression(node: ast.AST, alias: dict) -> Union[Expression, List[Expression]]:
+    def _parse_expression(node: ast.AST, alias: Dict[str, Schema]) -> Union[Expression, List[Expression]]:
         """
         Parse an AST node and convert it to an Expression or list of Expressions.
 
@@ -197,10 +202,11 @@ class Parser:
             # Handle column references (e.g. x.column_name)
             if isinstance(node.value, ast.Name):
                 # validate the column name
-                #if not lq.validate_column(node.attr):
-                #    raise ValueError(f"Column '{node.attr}' not found in table schema '{lq.schema}'")
+                schema = alias[node.value.id]
+                # if not schema.validate_column(node.attr):
+                #     raise ValueError(f"Column '{node.attr}' not found in table schema '{schema}'")
 
-                return ColumnReference(name=node.attr, table=alias[node.value.id])
+                return ColumnReference(name=node.attr, table=schema.name)
             else:
                 raise ValueError(f"Unsupported Column Reference {node.value}")
 
