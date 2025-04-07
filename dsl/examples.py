@@ -5,7 +5,7 @@ from legendql import *
 '''
 
 emp = LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float })
-dep = LegendQL.from_("department", columns={ "id": int, "name": str, "city": str, "code": str })
+dep = LegendQL.from_("department", columns={ "id": int, "name": str, "city": str, "code": str, "location": str })
 
 (emp
  .filter(lambda r: r.id > 10)
@@ -13,7 +13,7 @@ dep = LegendQL.from_("department", columns={ "id": int, "name": str, "city": str
     e.dept_id == d.id,
     [ e.id, e.name, (department_name := d.name), d.location, e.salary]))
  .extend(lambda r:[
-    (ids := r.emp_id + r.dept_id),
+    (ids := r.id + r.dept_id),
     (avg_val := over(r.location, avg(r.salary),
     sort=[r.emp_name, -r.location],
     frame=rows(0, unbounded())))])
@@ -25,7 +25,7 @@ dep = LegendQL.from_("department", columns={ "id": int, "name": str, "city": str
  .extend(lambda r: (calc_col := r.name + r.title))
  )
 
-for clause in emp.query.clauses:
+for clause in emp._clauses:
     print(clause)
 
 
@@ -34,7 +34,7 @@ for clause in emp.query.clauses:
     Using reassignment for each expression
 '''
 
-lq = LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float })
+lq = LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float, "start_date": str, "benefits": str })
 lq = lq.filter(lambda e: e.start_date > '2021-01-01')
 lq = lq.extend(lambda e: [
         (gross_salary := e.salary + 10),
@@ -49,7 +49,7 @@ lq = lq.extend(lambda e: (country_code := left(e.country, 2)))
 lq = lq.order_by(lambda e: [e.sum_gross_cost, -e.country])
 lq = lq.limit(10)
 
-for clause in lq.query.clauses:
+for clause in lq._clauses:
     print(clause)
 
 '''
@@ -72,7 +72,7 @@ lq = (LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": s
  .order_by(lambda e: [e.sum_gross_cost, -e.country])
  .limit(10))
 
-for clause in lq.query.clauses:
+for clause in lq._clauses:
     print(clause)
 
 
@@ -90,7 +90,7 @@ LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "s
         qualify=avg_val > 100_000)))
  )
 
-for clause in emp.query.clauses:
+for clause in emp._clauses:
     print(clause)
 
 emp = (
@@ -98,7 +98,7 @@ LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "s
  .extend(lambda r: (avg_val := over(r.location, avg(r.salary))))
  )
 
-for clause in emp.query.clauses:
+for clause in emp._clauses:
     print(clause)
 
 emp = (
@@ -106,7 +106,7 @@ LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "s
  .group_by(lambda r: aggregate(r.title, avg_gross_salary := avg(r.gross_salary)))
  )
 
-for clause in emp.query.clauses:
+for clause in emp._clauses:
     print(clause)
 
 emp = (
@@ -114,7 +114,7 @@ LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "s
  .group_by(lambda r: aggregate([r.title, r.dept_id], avg_gross_salary := avg(r.gross_salary)))
  )
 
-for clause in emp.query.clauses:
+for clause in emp._clauses:
     print(clause)
 
 emp = (
@@ -122,5 +122,18 @@ LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "s
  .group_by(lambda r: aggregate(r.title, avg_gross_salary := avg(r.gross_salary), having=avg_gross_salary > 100_000))
  )
 
-for clause in emp.query.clauses:
+for clause in emp._clauses:
     print(clause)
+
+
+emp = LegendQL.from_("employees", columns={ "id": int, "name": str, "dept_id": str, "salary": float })
+dep = LegendQL.from_("department", columns={ "id": int, "name": str, "city": str, "code": str })
+loc = LegendQL.from_("location", columns={ "id": int, "name": str, "country": str, "code": str })
+
+(emp
+ .left_join(dep, lambda e, d: e.dept_id == d.id)
+ .left_join(loc, lambda d, l: d.city == l.id))
+
+for clause in emp._clauses:
+    print(clause)
+

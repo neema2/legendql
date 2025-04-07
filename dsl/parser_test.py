@@ -10,11 +10,11 @@ from metamodel import *
 class ParserTest(unittest.TestCase):
 
     def test_join(self):
-        lq = LegendQL.from_("employee", {})
-        jq = LegendQL.from_("department", {})
+        lq = LegendQL.from_("employee", {"dept_id": int})
+        jq = LegendQL.from_("department", {"id": int})
 
         join = lambda e, d: e.dept_id == d.id
-        p = Parser.parse_join(join, lq.query, jq.query)
+        p = Parser.parse_join(join, lq.schema, jq.schema)
 
         self.assertEqual(p, BinaryExpression(
             left=ColumnReference(name='dept_id', table='employee'),
@@ -23,9 +23,9 @@ class ParserTest(unittest.TestCase):
 
 
     def test_filter(self):
-        lq = LegendQL.from_("employee", {})
+        lq = LegendQL.from_("employee", {"start_date": str})
         filter = lambda e: e.start_date > '2021-01-01'
-        p = Parser.parse(filter, lq.query)
+        p = Parser.parse(filter, lq.schema)
 
         self.assertEqual(p, BinaryExpression(
             left=ColumnReference(name='start_date', table='employee'),
@@ -34,9 +34,9 @@ class ParserTest(unittest.TestCase):
 
 
     def test_nested_filter(self):
-        lq = LegendQL.from_("employee", {})
+        lq = LegendQL.from_("employee", {"start_date": str, "salary": str})
         filter = lambda e: (e.start_date > '2021-01-01') or (e.start_date < '2000-02-02') and (e.salary < 1_000_000)
-        p = Parser.parse(filter, lq.query)
+        p = Parser.parse(filter, lq.schema)
 
         self.assertEqual(p, BinaryExpression(
             left=BinaryExpression(
@@ -57,12 +57,12 @@ class ParserTest(unittest.TestCase):
 
 
     def test_extend(self):
-        lq = LegendQL.from_("employee", {})
+        lq = LegendQL.from_("employee", {"salary": float, "benefits": float})
         extend = lambda e: [
             (gross_salary := e.salary + 10),
             (gross_cost := gross_salary + e.benefits)]
 
-        p = Parser.parse(extend, lq.query)
+        p = Parser.parse(extend, lq.schema)
 
         self.assertEqual(p, [
             ColumnExpression(
@@ -81,9 +81,9 @@ class ParserTest(unittest.TestCase):
 
 
     def test_sort(self):
-        lq = LegendQL.from_("employee", {})
+        lq = LegendQL.from_("employee", {"sum_gross_cost": float, "country": str})
         sort = lambda e: [e.sum_gross_cost, -e.country]
-        p = Parser.parse(sort, lq.query)
+        p = Parser.parse(sort, lq.schema)
 
         self.assertEqual(p, [
             ColumnReference(name='sum_gross_cost', table='employee'),
@@ -92,12 +92,12 @@ class ParserTest(unittest.TestCase):
 
 
     def test_fstring(self):
-        lq = LegendQL.from_("employee", {})
-        fstring = lambda e: (id := f"{e.title}_{e.country}")
-        p = Parser.parse(fstring, lq.query)
+        lq = LegendQL.from_("employee", {"title": str, "country": str})
+        fstring = lambda e: (new_id := f"{e.title}_{e.country}")
+        p = Parser.parse(fstring, lq.schema)
 
         self.assertEqual(p, ColumnExpression(
-            name='id',
+            name='new_id',
             expression=FunctionExpression(
                 function=StringConcatFunction(),
                 parameters=[
@@ -107,13 +107,13 @@ class ParserTest(unittest.TestCase):
 
 
     def test_aggregate(self):
-        lq = LegendQL.from_("employee", {})
+        lq = LegendQL.from_("employee", {"id": int, "name": str, "salary": float, "department_name": str})
         group = lambda r: aggregate(
             [r.id, r.name],
             [sum_salary := sum(r.salary + 1), count_dept := count(r.department_name)],
-            having=r.sum_salary > 100_000)
+            having=sum_salary > 100_000)
 
-        p = Parser.parse(group, lq.query)
+        p = Parser.parse(group, lq.schema)
         print(p)
 
         f = FunctionExpression(
@@ -135,7 +135,7 @@ class ParserTest(unittest.TestCase):
                         function=CountFunction(),
                         parameters=[ColumnReference(name='department_name', table='employee')]))],
                 BinaryExpression(
-                    left=ColumnReference(name='sum_salary', table='employee'),
+                    left=ColumnReference(name='sum_salary', table=''),
                     right=LiteralExpression(value=100000),
                     operator=BinaryOperator(value='>'))])
         print(f)
@@ -143,11 +143,11 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(str(p), str(f))
 
     def test_window(self):
-        lq = LegendQL.from_("employee", {})
+        lq = LegendQL.from_("employee", {"location": str, "salary": float, "emp_name": str, "location": str})
         window = lambda r: (avg_val :=
                             over(r.location, avg(r.salary), sort=[r.emp_name, -r.location], frame=rows(0, unbounded())))
 
-        p = Parser.parse(window, lq.query)
+        p = Parser.parse(window, lq.schema)
         print(p)
 
         f = ColumnExpression(

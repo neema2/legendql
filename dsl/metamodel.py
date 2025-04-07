@@ -1,13 +1,10 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Dict, Type
+from typing import List
 from dataclasses import dataclass
 
-class Query(ABC):
-    def __init__(self, name: str, columns: Dict[str, Type]):
-        self.name = name
-        self.columns = columns
-        self.clauses: List[Clause] = []
+from dsl.schema import Schema
+
 
 class Literal(ABC):
     @abstractmethod
@@ -122,6 +119,16 @@ class Clause(ABC):
     pass
 
 @dataclass
+class FromClause(Clause):
+    database: str
+    table: str
+
+@dataclass
+class WithClause(Clause):
+    database: str
+    table: str
+
+@dataclass
 class FilterClause(Clause):
     expression: Expression
 
@@ -152,6 +159,6 @@ class JoinType:
 @dataclass
 class JoinClause(Clause):
     #left: Query
-    right: Query
+    right: Schema
     condition: Expression
     type: JoinType
