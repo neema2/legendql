@@ -1,7 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
-from enum import Enum
 from typing import List, Optional
 from dataclasses import dataclass
 
@@ -71,6 +70,11 @@ class Function(ABC):
 class CountFunction(Function):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_count_function(self, parameter)
+
+@dataclass
+class AverageFunction(Function):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_average_function(self, parameter)
 
 class Expression(ABC):
     @abstractmethod
@@ -228,37 +232,36 @@ class LiteralExpression(Expression):
 class AliasExpression(Expression, ABC):
     alias: str = None
 
+@dataclass
+class VariableAliasExpression(AliasExpression):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_alias_expression(self, parameter)
+        return visitor.visit_variable_alias_expression(self, parameter)
 
 @dataclass
-class SelectionExpression(Expression):
-    name: str = None
+class ColumnReferenceExpression(Expression):
+    name: str
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_column_reference_expression(self, parameter)
+
+@dataclass
+class ColumnAliasExpression(AliasExpression):
+    reference: ColumnReferenceExpression = None
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_column_alias_expression(self, parameter)
+
+@dataclass
+class ComputedColumnAliasExpression(AliasExpression):
     expression: Optional[Expression] = None
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_selection_expression(self, parameter)
-
-@dataclass
-class ColumnExpression(Expression):
-    name: str
-    expression: Expression
-
-    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_column_expression(self, parameter)
-
-@dataclass
-class ColumnReference(Expression):
-    name: str
-    table: str
-    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_column_reference(self, parameter)
+        return visitor.visit_computed_column_alias_expression(self, parameter)
 
 @dataclass
 class IfExpression(Expression):
     test: Expression
     body: Expression
     orelse: Expression
+
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_if_expression(self, parameter)
 
@@ -268,27 +271,26 @@ class NotExpression(Expression):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_not_expression(self, parameter)
 
-class Sort(Enum):
-    ASC = "ASC"
-    DESC = "DESC"
-
-    def __str__(self):
-        return self.value
+class OrderType(Expression, ABC):
+    pass
 
 @dataclass
-class SortExpression(Expression):
-    direction: Sort
+class AscendingOrderType(OrderType):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_ascending_order_type(self, parameter)
+
+@dataclass
+class DescendingOrderType(OrderType):
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_descending_order_type(self, parameter)
+
+@dataclass
+class OrderByExpression(Expression):
+    direction: OrderType
     expression: Expression
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_sort_expression(self, parameter)
-
-@dataclass
-class ReferenceExpression(AliasExpression):
-    ref: str = None
-
-    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_reference_expression(self, parameter)
+        return visitor.visit_order_by_expression(self, parameter)
 
 @dataclass
 class FunctionExpression(Expression):
@@ -298,12 +300,26 @@ class FunctionExpression(Expression):
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_function_expression(self, parameter)
 
+@dataclass
+class MapReduceExpression(Expression):
+    map_expression: Expression
+    reduce_expression: Expression
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_map_reduce_expression(self, parameter)
+
+@dataclass
+class LambdaExpression(Expression):
+    parameters: List[str]
+    expression: Expression
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_lambda_expression(self, parameter)
+
 class Clause(ABC):
     pass
 
 @dataclass
 class RenameClause(Clause):
-    expressions: List[Expression]
+    columnAliases: List[ColumnAliasExpression]
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_rename_clause(self, parameter)
@@ -331,14 +347,6 @@ class ExtendClause(Clause):
         return visitor.visit_extend_clause(self, parameter)
 
 @dataclass
-class ExtendExpression(Expression):
-    alias: str
-    expression: Expression
-
-    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_extend_expression(self, parameter)
-
-@dataclass
 class GroupByClause(Clause):
     expression: Expression
 
@@ -360,6 +368,13 @@ class DistinctClause(Clause):
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_distinct_clause(self, parameter)
+
+@dataclass
+class OrderByClause(Clause):
+    ordering: List[OrderType]
+
+    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
+        return visitor.visit_order_by_clause(self, parameter)
 
 @dataclass
 class LimitClause(Clause):
@@ -412,13 +427,6 @@ class OffsetClause(Clause):
 
     def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
         return visitor.visit_offset_clause(self, parameter)
-
-@dataclass
-class OrderByClause(Clause):
-    expressions: List[Expression]
-
-    def visit[P, T](self, visitor: ExecutionVisitor, parameter: P) -> T:
-        return visitor.visit_order_by_clause(self, parameter)
 
 class Runtime(ABC):
     @abstractmethod
@@ -537,15 +545,15 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_alias_expression[P, T](self, val: AliasExpression, parameter: P) -> T:
+    def visit_variable_alias_expression[P, T](self, val: VariableAliasExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_selection_expression[P, T](self, val: SelectionExpression, parameter: P) -> T:
+    def visit_computed_column_alias_expression[P, T](self, val: ComputedColumnAliasExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_reference_expression[P, T](self, val: ReferenceExpression, parameter: P) -> T:
+    def visit_column_alias_expression[P, T](self, val: ColumnAliasExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
@@ -553,7 +561,19 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def visit_map_reduce_expression[P, T](self, val: MapReduceExpression, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_lambda_expression[P, T](self, val: LambdaExpression, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
     def visit_count_function[P, T](self, val: CountFunction, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_average_function[P, T](self, val: AverageFunction, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
@@ -569,10 +589,6 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_extend_expression[P, T](self, val: ExtendExpression, parameter: P) -> T:
-        raise NotImplementedError()
-
-    @abstractmethod
     def visit_group_by_clause[P, T](self, val: GroupByClause, parameter: P) -> T:
         raise NotImplementedError()
 
@@ -582,6 +598,10 @@ class ExecutionVisitor(ABC):
 
     @abstractmethod
     def visit_distinct_clause[P, T](self, val: DistinctClause, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_order_by_clause[P, T](self, val: OrderByClause, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
@@ -605,11 +625,7 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_column_expression[P, T](self, val: ColumnExpression, parameter: P) -> T:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def visit_column_reference[P, T](self, val: ColumnReference, parameter: P) -> T:
+    def visit_column_reference_expression[P, T](self, val: ColumnReferenceExpression, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
@@ -621,7 +637,15 @@ class ExecutionVisitor(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def visit_sort_expression[P, T](self, val: SortExpression, parameter: P) -> T:
+    def visit_order_by_expression[P, T](self, val: OrderByExpression, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_ascending_order_type[P, T](self, val: AscendingOrderType, parameter: P) -> T:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def visit_descending_order_type[P, T](self, val: DescendingOrderType, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
@@ -630,10 +654,6 @@ class ExecutionVisitor(ABC):
 
     @abstractmethod
     def visit_offset_clause[P, T](self, val: OffsetClause, parameter: P) -> T:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def visit_order_by_clause[P, T](self, val: OrderByClause, parameter: P) -> T:
         raise NotImplementedError()
 
     @abstractmethod
