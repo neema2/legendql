@@ -2,7 +2,7 @@ from typing import List
 
 from dialect.purerelation.dialect import PureRuntime
 from model.metamodel import Clause
-from runtime.pure.repl_utils import send_to_repl
+from runtime.pure.repl.repl_utils import send_to_repl
 
 
 class ReplRuntime(PureRuntime):

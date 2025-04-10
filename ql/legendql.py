@@ -7,18 +7,23 @@ from model.metamodel import FromClause, OrderByClause, LimitClause, IntegerLiter
     LeftJoinType, InnerJoinType, Runtime, DataFrame
 from dsl.parser import ParseType
 from model.metamodel import SelectionClause, ExtendClause, FilterClause, GroupByClause, JoinClause, JoinType, Clause
+from model.schema import Schema
 from ql.rawlegendql import RawLegendQL
 
 
 class LegendQL:
     _internal: RawLegendQL
 
-    def __init__(self, database: str, table: str, columns: Dict[str, Type]):
-        self._internal = RawLegendQL.from_db(database, table, columns)
+    def __init__(self, schema: Schema):
+        self._internal = RawLegendQL.from_schema(schema)
+
+    @classmethod
+    def from_schema(cls, schema: Schema) -> LegendQL:
+        return LegendQL(schema)
 
     @classmethod
     def from_db(cls, database: str, table: str, columns: Dict[str, Type]) -> LegendQL:
-        return LegendQL(database, table, columns)
+        return LegendQL.from_schema(Schema(database, table, columns))
 
     def bind[R: Runtime](self, runtime: R) -> DataFrame:
         return self._internal.bind(runtime)

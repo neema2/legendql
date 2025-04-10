@@ -15,8 +15,12 @@ class RawLegendQL:
     _clauses: List[Clause]
 
     @classmethod
+    def from_schema(cls, schema: Schema) -> RawLegendQL:
+        return RawLegendQL(schema, [FromClause(schema.database, schema.table)])
+
+    @classmethod
     def from_db(cls, database: str, table: str, columns: Dict[str, Type]) -> RawLegendQL:
-        return RawLegendQL(Schema(database, table, columns), [FromClause(database, table)])
+        return RawLegendQL.from_schema(Schema(database, table, columns))
 
     def bind[R: Runtime](self, runtime: R) -> DataFrame:
         return DataFrame(runtime, self._clauses)
@@ -38,7 +42,7 @@ class RawLegendQL:
         self._add_clause(RenameClause(list(map(lambda rename: ColumnAliasExpression(alias=rename[1], reference=ColumnReferenceExpression(name=rename[0])), renames))))
         return self
 
-    def extend(self, extend: List[ExtendExpression]) -> RawLegendQL:
+    def extend(self, extend: List[Expression]) -> RawLegendQL:
         self._add_clause(ExtendClause(extend))
         return self
 

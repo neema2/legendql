@@ -5,11 +5,11 @@ from model.metamodel import BinaryExpression, OperandExpression, ColumnAliasExpr
     FunctionExpression, CountFunction, InnerJoinType, ColumnReferenceExpression, ComputedColumnAliasExpression, \
     MapReduceExpression, LambdaExpression, VariableAliasExpression
 from ql.rawlegendql import RawLegendQL
-from runtime.pure.repl_utils import is_repl_running, send_to_repl, load_csv_to_repl
-from runtime.pure.runtime import ReplRuntime
+from runtime.pure.repl.repl_utils import is_repl_running, send_to_repl, load_csv_to_repl
+from runtime.pure.repl.runtime import ReplRuntime
 
 
-class TestPureRelationDialect(unittest.TestCase):
+class TestReplEvaluation(unittest.TestCase):
 
     def setUp(self):
         if not is_repl_running():
